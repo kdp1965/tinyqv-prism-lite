@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = peripheral.v latch_loader.v latch_shift_reg.v
+PROJECT_SOURCES = peripheral.v latch_loader.v latch_shift_reg.sv
 ADDITIONAL_SOURCES = tt_wrapper.v spi/*.sv
 
 ifneq ($(GATES),yes)

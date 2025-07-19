@@ -13,7 +13,7 @@ module latch_shift_reg
     reg [WIDTH-1:0] latch_regs [0:DEPTH-1];
 
     integer i;
-    always @(*) begin
+    always_latch begin
         for (i = 0; i < DEPTH; i = i + 1) begin
             if (latch_en[i] || !rst_n) begin
                 latch_regs[i] = (i == 0) ? data_in : latch_regs[i-1];
