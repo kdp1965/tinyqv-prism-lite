@@ -33,6 +33,31 @@ async def test_project(dut):
     assert await tqv.read_hword_reg(0) == 0x5678
     assert await tqv.read_word_reg(0) == 0x12345678
 
+    # Write a value to the config array 
+    await tqv.write_word_reg(8, 0x10101010)
+    await tqv.write_word_reg(12, 0x00001010)
+
+    await tqv.write_word_reg(8, 0x20202020)
+    await tqv.write_word_reg(12, 0x00002020)
+
+    await tqv.write_word_reg(8, 0x30303030)
+    await tqv.write_word_reg(12, 0x00003030)
+
+    await tqv.write_word_reg(8, 0x40404040)
+    await tqv.write_word_reg(12, 0x00004040)
+
+    await tqv.write_word_reg(8, 0x50505050)
+    await tqv.write_word_reg(12, 0x00005050)
+
+    await tqv.write_word_reg(8, 0x60606060)
+    await tqv.write_word_reg(12, 0x00006060)
+
+    await tqv.write_word_reg(8, 0x70707070)
+    await tqv.write_word_reg(12, 0x00007070)
+
+    await tqv.write_word_reg(8, 0x80808080)
+    await tqv.write_word_reg(12, 0x00008080)
+
     # Set an input value, in the example this will be added to the register value
     dut.ui_in.value = 30
 
@@ -47,8 +72,11 @@ async def test_project(dut):
     # Input value should be read back from register 1
     assert await tqv.read_byte_reg(4) == 30
 
+    # 0x10101010 should be read back from register 8
+    assert await tqv.read_word_reg(8) == 0x10101010
+
     # Zero should be read back from register 2
-    assert await tqv.read_word_reg(8) == 0
+    assert await tqv.read_word_reg(16) == 0
 
     # A second write should work
     await tqv.write_word_reg(0, 40)

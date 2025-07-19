@@ -31,6 +31,16 @@ module tqvp_example (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
+    localparam WIDTH = 48;
+    localparam DEPTH = 8;
+
+    wire                   config_write;
+    wire [WIDTH-1:0]       config_data;
+    wire [DEPTH-1:0]       config_latch_en;
+    wire                   config_busy;
+    wire [WIDTH*DEPTH-1:0] config_bus;
+    wire [WIDTH-1:0]       config_array [0:DEPTH-1];  // not Verilog-2001 legal, but we’ll work around that
+
     // Implement a 32-bit read/write register at address 0
     reg [31:0] example_data;
     always @(posedge clk) begin
@@ -53,6 +63,8 @@ module tqvp_example (
     // All other addresses read 0.
     assign data_out = (address == 6'h0) ? example_data :
                       (address == 6'h4) ? {24'h0, ui_in} :
+                      (address == 6'h8) ? config_array[DEPTH-1][31:0] : 
+                      (address == 6'hc) ? {16'h0, config_array[DEPTH-1][47:32]} :
                       32'h0;
 
     // All reads complete in 1 clock
@@ -83,4 +95,41 @@ module tqvp_example (
     // registers are being read.
     wire _unused = &{data_read_n, 1'b0};
 
+    /*
+    ================================================================================ 
+    The PRISM latch based CONFIG data
+    ================================================================================ 
+    */
+    assign config_write = (address == 6'h8 || address == 6'hC) && (data_write_n == 2'b10);
+    latch_loader prism_config_loader
+    (
+        .clk          ( clk             ),
+        .rst_n        ( rst_n           ),
+        .write_req    ( config_write    ),
+        .address      ( address         ),
+        .data_in      ( data_in         ),
+        .config_data  ( config_data     ),
+        .busy         ( config_busy     ),
+        .latch_en     ( config_latch_en )
+    );
+
+    latch_shift_reg i_latch_shift_reg
+    (
+        .rst_n        ( rst_n           ),
+        .data_in      ( config_data     ),
+        .latch_en     ( config_latch_en ),
+        .data_out     ( config_bus      )
+    );
+
+    genvar i;
+    generate
+        for (i = 0; i < DEPTH; i = i + 1) begin : unpack_config
+            assign config_array[i] = config_bus[(i+1)*WIDTH-1 -: WIDTH];
+        end
+    endgenerate
+ 
+
 endmodule
+
+// vim: et sw=4 ts=4
+
