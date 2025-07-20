@@ -35,7 +35,7 @@ module tqvp_prism (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
-    localparam WIDTH = 48;
+    localparam WIDTH = 64;
     localparam DEPTH = 8;
 
     wire                   config_write;
@@ -68,7 +68,7 @@ module tqvp_prism (
     assign data_out = (address == 6'h0) ? example_data :
                       (address == 6'h4) ? {24'h0, ui_in} :
                       (address == 6'h8) ? config_array[DEPTH-1][31:0] : 
-                      (address == 6'hc) ? {16'h0, config_array[DEPTH-1][47:32]} :
+                      (address == 6'hc) ? {16'h0, config_array[DEPTH-1][63:32]} :
                       32'h0;
 
     // All reads complete in 1 clock
@@ -117,7 +117,12 @@ module tqvp_prism (
         .latch_en     ( config_latch_en )
     );
 
-    latch_shift_reg i_latch_shift_reg
+    latch_shift_reg
+    #(
+        .DEPTH ( DEPTH ),
+        .WIDTH ( WIDTH )
+    )
+    i_latch_shift_reg
     (
 `ifdef USE_POWER_PINS
         .VGND(VGND),

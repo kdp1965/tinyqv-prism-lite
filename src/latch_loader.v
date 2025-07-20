@@ -7,7 +7,7 @@ module latch_loader #(
     input  wire                  write_req,        // One-cycle pulse to initiate write
     input  wire  [31:0]          data_in,          // Incoming data from RISC-V
     input  wire  [5:0]           address,          // Input address
-    output reg   [47:0]          config_data,      // Incoming data from RISC-V
+    output reg   [63:0]          config_data,      // Incoming data from RISC-V
     output wire                  busy,             // Indicates the FSM is busy
     output reg   [NUM_REGS-1:0]  latch_en          // Latch enables, active high
 );
@@ -73,7 +73,7 @@ module latch_loader #(
             if (address == 6'h8)
                config_data[31:0] <= data_in;
             if (address == 6'hc)
-               config_data[47:32] <= data_in[15:0];
+               config_data[63:32] <= data_in[31:0];
         end
     end
 
