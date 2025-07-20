@@ -36,27 +36,35 @@ async def test_project(dut):
     # Write a value to the config array 
     await tqv.write_word_reg(8, 0x10101010)
     await tqv.write_word_reg(12, 0x00001010)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x20202020)
     await tqv.write_word_reg(12, 0x00002020)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x30303030)
     await tqv.write_word_reg(12, 0x00003030)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x40404040)
     await tqv.write_word_reg(12, 0x00004040)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x50505050)
     await tqv.write_word_reg(12, 0x00005050)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x60606060)
     await tqv.write_word_reg(12, 0x00006060)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x70707070)
     await tqv.write_word_reg(12, 0x00007070)
+    await tqv.write_word_reg(16, 0x0)
 
     await tqv.write_word_reg(8, 0x80808080)
     await tqv.write_word_reg(12, 0x00008080)
+    await tqv.write_word_reg(16, 0x0)
 
     # Set an input value, in the example this will be added to the register value
     dut.ui_in.value = 30
