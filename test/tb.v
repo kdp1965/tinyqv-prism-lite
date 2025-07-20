@@ -25,6 +25,11 @@ module tb ();
 `ifdef GL_TEST
   wire VPWR = 1'b1;
   wire VGND = 1'b0;
+`else
+`ifdef USE_POWER_PINS
+  wire VGND = 1'b0;
+  wire VPWR = 1'b1;
+`endif
 `endif
 
   tt_um_tqv_peripheral_harness test_harness (
@@ -33,6 +38,11 @@ module tb ();
 `ifdef GL_TEST
       .VPWR(VPWR),
       .VGND(VGND),
+`else
+`ifdef USE_POWER_PINS
+      .VPWR(VPWR),
+      .VGND(VGND),
+`endif
 `endif
 
       .ui_in  (ui_in),    // Dedicated inputs

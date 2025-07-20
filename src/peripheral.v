@@ -8,7 +8,11 @@
 // Change the name of this module to something that reflects its functionality and includes your name for uniqueness
 // For example tqvp_yourname_spi for an SPI peripheral.
 // Then edit tt_wrapper.v line 41 and change tqvp_example to your chosen module name.
-module tqvp_example (
+module tqvp_prism (
+`ifdef USE_POWER_PINS
+    input  wire VGND,
+    input  wire VPWR,
+`endif
     input         clk,          // Clock - the TinyQV project clock is normally set to 64MHz.
     input         rst_n,        // Reset_n - low to reset.
 
@@ -115,6 +119,10 @@ module tqvp_example (
 
     latch_shift_reg i_latch_shift_reg
     (
+`ifdef USE_POWER_PINS
+        .VGND(VGND),
+        .VPWR(VPWR),
+`endif
         .rst_n        ( rst_n           ),
         .data_in      ( config_data     ),
         .latch_en     ( config_latch_en ),
