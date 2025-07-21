@@ -134,7 +134,7 @@ module tqvp_prism (
             end
 
             // Countdown to zero counter
-            if (!prism_halt && count1 && prism_out_data[7])
+            if (!prism_halt && (count1 != 0) && prism_out_data[7])
             begin
                 count1 <= count1 - 1;
             end
@@ -145,7 +145,7 @@ module tqvp_prism (
             end
 
             // 4-bit count down
-            if (!prism_halt && count2 && prism_out_data[9])
+            if (!prism_halt && (count2 != 0) && prism_out_data[9])
             begin
                 count2 <= count2 - 1;
             end

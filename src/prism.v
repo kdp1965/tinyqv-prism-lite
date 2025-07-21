@@ -653,7 +653,7 @@ module prism
          end
 
          // Test for write to debug output register
-         if (INCLUDE_DEBUG && debug_wr && (debug_addr[W_ADDR-1:4] == 4'h0))
+         if (INCLUDE_DEBUG && debug_wr && (debug_addr[W_ADDR-1:4] == 2'h0))
          begin
             // Test for write to debug_dout bits
          /*
@@ -711,7 +711,7 @@ module prism
                if (FRACTURABLE)
                   case (debug_addr[3:0])
                      4'h0:    debug_rdata_prism = {28'h0, cfg_fractured, fsm_enable_pin_disable, fsm_enable_comb, cfg_program};
-                     4'h4:    debug_rdata_prism = debug_ctrl0;
+                     4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
 //                     4'h8:    debug_rdata_prism = debug_ctrl1;
                      4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                                  debug_break_active[FRACTURABLE], debug_halt[FRACTURABLE], next_si[FRACTURABLE], curr_si[FRACTURABLE],
@@ -721,7 +721,7 @@ module prism
                else
                   case (debug_addr[3:0])
                      4'h0:    debug_rdata_prism = {29'h0, fsm_enable_pin_disable, fsm_enable_comb, 1'b0};
-                     4'h4:    debug_rdata_prism = debug_ctrl0;
+                     4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
 //                     4'h8:    debug_rdata_prism = debug_ctrl1;
                      4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                                  2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
@@ -731,22 +731,24 @@ module prism
            end
       4'h1:   debug_rdata_prism = debug_rdata_ram;
 
+      /*
       4'h2:   begin
                if (FRACTURABLE)
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-                  4'h4:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
+//                  4'h4:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
 //                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
 //                  4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                else
                   case (debug_addr[3:0])
-                  4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
+//                  4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
 //                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                end
+   */
 
       4'h3:   begin
                   case (debug_addr[3:0])
