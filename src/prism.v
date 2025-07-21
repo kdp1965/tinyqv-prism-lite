@@ -91,7 +91,7 @@ module prism
    parameter  DUAL_COMPARE   = 0,
    parameter  FRACTURABLE    = 0,
    parameter  LUT_SIZE       = 3,
-   parameter  INCLUDE_DEBUG  = 1,
+   parameter  INCLUDE_DEBUG  = 0,
    parameter  SI_BITS        = DEPTH > 32 ? 6 :
                                DEPTH > 16 ? 5 :
                                DEPTH > 8  ? 4 :

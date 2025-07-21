@@ -48,7 +48,7 @@
   "BOTTOM_MARGIN_MULT": 1,
   "LEFT_MARGIN_MULT": 6,
   "RIGHT_MARGIN_MULT": 6,
-  "PL_TARGET_DENSITY_PCT": 82,
+  "PL_TARGET_DENSITY_PCT": 70,
 
   "//": "Absolute die size",
   "FP_SIZING": "absolute",
