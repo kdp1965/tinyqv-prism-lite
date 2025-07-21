@@ -85,9 +85,9 @@ module prism
    parameter  DEPTH          = 8,                  // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
    parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
-   parameter  COND_OUT       = 1,                  // Number of conditional outputs
+   parameter  COND_OUT       = 0,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
-   parameter  STATE_INPUTS   = 5,                  // Number of parallel state input muxes
+   parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
    parameter  FRACTURABLE    = 1,
    parameter  LUT_SIZE       = 3,
@@ -130,7 +130,7 @@ module prism
 
    // Output data
    output  wire [OUTPUTS-1:0]    out_data,         // Bit Slip pulse back to SerDes
-   output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
+//   output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
 
    // ============================
    // Debug bus for programming
@@ -199,10 +199,10 @@ module prism
    wire  [DUAL_COMPARE:0]     compare_match [ FRACTURABLE:0 ];
 
    // Conditional out control signals
-   wire  [COND_LUT_BITS-1:0]  cond_cfg    [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-   wire  [1:0]                cond_in     [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-   wire                       cond_out_c  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-   wire                       cond_out_m  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
+//   wire  [COND_LUT_BITS-1:0]  cond_cfg    [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
+//   wire  [1:0]                cond_in     [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
+//   wire                       cond_out_c  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
+//   wire                       cond_out_m  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
 
    // Output data masking
    wire  [OUTPUTS-1:0]        out_data_c  [ FRACTURABLE:0 ];
@@ -218,7 +218,7 @@ module prism
 
    // Config data
    reg   [OUTPUTS-1:0]        cfg_data_out_mask [ FRACTURABLE:0 ];
-   reg   [COND_OUT-1:0]       cfg_cond_out_mask [ FRACTURABLE:0 ];
+//   reg   [COND_OUT-1:0]       cfg_cond_out_mask [ FRACTURABLE:0 ];
 
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
@@ -374,10 +374,10 @@ module prism
       end
 
       // Assign conditional output bits
-      for (genvar cond = 0; cond < COND_OUT; cond++)
-      begin : COND_ASSIGN_GEN
-         assign cond_cfg[f][cond]     = stew[f][COND_LUT_BITS*cond + COND_START +: COND_LUT_BITS]; 
-      end
+//      for (genvar cond = 0; cond < COND_OUT; cond++)
+//      begin : COND_ASSIGN_GEN
+//         assign cond_cfg[f][cond]     = stew[f][COND_LUT_BITS*cond + COND_START +: COND_LUT_BITS]; 
+//      end
 
       // Assign output bits
       assign state_outputs[f]         = stew[f][OUTPUTS     + OUTPUTS_START-1 -: OUTPUTS];
@@ -533,6 +533,7 @@ module prism
    Assign the conditional outputs
    =================================================================================
    */
+   /*
    for (genvar f = 0; f <= FRACTURABLE; f++)
    begin : COND_FRAC_GEN
       for (genvar cond = 0; cond < COND_OUT; cond++)
@@ -559,6 +560,7 @@ module prism
                               cond_out_m[0][cond]) : cond_out_m[0][cond]) : 1'b0;
       
    end  
+   */
 
    /* 
    =================================================================================
@@ -605,6 +607,7 @@ module prism
          debug_dout_new_p2 <= 1'b0;
          debug_dout_new_p3 <= 1'b0;
 
+         /*
          for (f = 0; f <= FRACTURABLE; f++)
          begin
             cfg_cond_out_mask[f] <= 'h0;
@@ -612,6 +615,7 @@ module prism
             for (cond = 0; cond < COND_OUT; cond++)
                cfg_cond_out_mask[f][cond] <= 'h0;
          end
+         */
       end
       else
       begin
@@ -635,8 +639,8 @@ module prism
                   cfg_data_out_mask[f] <= debug_wdata[OUTPUTS-1:0];
 
                // Test for conditional output mask write
-               if (debug_addr[3:0] == 4'(4 + f*8))
-                  cfg_cond_out_mask[f] <= debug_wdata[COND_OUT-1:0];
+//               if (debug_addr[3:0] == 4'(4 + f*8))
+//                  cfg_cond_out_mask[f] <= debug_wdata[COND_OUT-1:0];
             end
          end
 
@@ -725,15 +729,15 @@ module prism
                if (FRACTURABLE)
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-          4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
+//                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
                   4'h8:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
-                  4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
+//                  4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                else
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
+//                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                end
@@ -743,7 +747,7 @@ module prism
                   4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
-                  4'h8: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
+                  4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
               end

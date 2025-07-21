@@ -42,9 +42,9 @@ module tqvp_prism (
     reg   [8:0] extra_in;
     wire        prism_wr;
     wire [15:0] prism_in_data;
-    wire [12:0] prism_out_data;
+    wire [10:0] prism_out_data;
     wire [31:0] prism_read_data;
-    wire        prism_cond_out;
+//    wire        prism_cond_out;
     wire        prism_halt;
 
     // Instantiate the prism controller
@@ -62,7 +62,7 @@ module tqvp_prism (
         .fsm_enable         ( prism_enable      ),
         .in_data            ( prism_in_data     ),
         .out_data           ( prism_out_data    ),
-        .cond_out           ( prism_cond_out    ),
+//        .cond_out           ( prism_cond_out    ),
                             
         .debug_addr         ( address           ),
         .debug_wr           ( prism_wr          ),

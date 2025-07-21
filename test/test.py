@@ -51,11 +51,11 @@ async def test_project(dut):
     await tqv.write_word_reg(0x10, 0x80808080)
     await tqv.write_word_reg(0x14, 0x00008080)
 
-    await tqv.write_word_reg(0x10, 0x90909090)
-    await tqv.write_word_reg(0x14, 0x00009090)
+#    await tqv.write_word_reg(0x10, 0x90909090)
+#    await tqv.write_word_reg(0x14, 0x00009090)
 
-    await tqv.write_word_reg(0x10, 0xa0a0a0a0)
-    await tqv.write_word_reg(0x14, 0x0000a0a0)
+#    await tqv.write_word_reg(0x10, 0xa0a0a0a0)
+#    await tqv.write_word_reg(0x14, 0x0000a0a0)
 
 #    await tqv.write_word_reg(0x10, 0xb0b0b0b0)
 #    await tqv.write_word_reg(0x14, 0x0000b0b0)
