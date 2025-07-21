@@ -82,12 +82,12 @@
 */
 module prism
  #(
-   parameter  DEPTH          = 12,                 // Total number of available states
+   parameter  DEPTH          = 10,                 // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
-   parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
-   parameter  COND_OUT       = 0,                  // Number of conditional outputs
+   parameter  OUTPUTS        = 13,                 // Nuber of FSM outputs
+   parameter  COND_OUT       = 1,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
-   parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
+   parameter  STATE_INPUTS   = 5,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
    parameter  FRACTURABLE    = 1,
    parameter  LUT_SIZE       = 3,
@@ -112,7 +112,7 @@ module prism
    parameter  RAM_DWIDTH     = RAM_WIDTH > 96 ? 128 : 
                                RAM_WIDTH > 64 ? 96  :
                                RAM_WIDTH > 32 ? 64  : 32,
-   parameter  W_ADDR         = 8
+   parameter  W_ADDR         = 6
   )
   (
 `ifdef USE_POWER_PINS
@@ -223,7 +223,6 @@ module prism
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
    reg  [31:0]                debug_in_data;      // Peripheral data for in_data readback
-   reg  [DBG_A_BITS-1:0]      debug_si_a;
 
    // Debug control register
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
@@ -252,6 +251,7 @@ module prism
    reg  [1:0]                 debug_break_active[1:0];
    reg  [31:0]                decision_tree_data;  // Peripheral read data
 
+   /*
    integer      cond_pos[14];
 
    assign cond_pos[0]   = 0;
@@ -274,6 +274,7 @@ module prism
 
    assign cond_pos[12]  = 3;
    assign cond_pos[13]  = HALF_IN+2;
+   */
 
    /* 
    =================================================================================
@@ -282,7 +283,6 @@ module prism
    */
 
    wire [31:0]             debug_rdata_ram;  // Peripheral read data
-   wire                    debug_ram_en;
 
    // Instantiate the Latch based SIT
    prism_latch_sit
@@ -299,22 +299,21 @@ module prism
       .VPWR(VPWR),
       .VGND(VGND),
 `endif
-      .clk                   ( clk                     ),
-                                                         
-      // Periph bus interface                            
-      .debug_addr            ( debug_addr              ),
-      .debug_wdata           ( debug_wdata             ),
-      .debug_rdata           ( debug_rdata_ram         ),
-      .debug_wr              ( debug_wr                ),
+      .clk                   ( clk              ),
+      .rst_n                 ( rst_n            ),
                                                         
-      // PRISM interface                                
-      .raddr1                ( ram_raddr1              ),
-      .raddr2                ( ram_raddr2              ),
-      .rdata1                ( ram_dout_c[0]           ),
-      .rdata2                ( ram_dout_c[1]           )
+      // Periph bus interface                           
+      .debug_addr            ( debug_addr       ),
+      .debug_wdata           ( debug_wdata      ),
+      .debug_rdata           ( debug_rdata_ram  ),
+      .debug_wr              ( debug_wr         ),
+                                                       
+      // PRISM interface                               
+      .raddr1                ( ram_raddr1       ),
+      .raddr2                ( ram_raddr2       ),
+      .rdata1                ( ram_dout_c[0]    ),
+      .rdata2                ( ram_dout_c[1]    )
    );
-
-   assign debug_ram_en = debug_addr[5:2] == 1;
 
    for (genvar f = 0; f <= FRACTURABLE; f++)
    begin: GEN_RAM_DOUT
@@ -323,33 +322,8 @@ module prism
    end
 
    assign debug_rdata  = debug_rdata_prism;
-   assign debug_en_ram = debug_wr && (debug_addr[W_ADDR-1:0] == 8'b0);
    assign ram_raddr1   = curr_si[0][DH_BITS-1:0];
    assign ram_raddr2   = curr_si[1][DR_BITS-1:0];
-
-   always @(posedge clk)
-   begin
-      if (~rst_n | debug_reset)
-      begin
-         debug_si_a <= 'h0;
-      end
-      else
-      begin
-         // Test for write to the debug_si_a
-         if (debug_wr && debug_addr[W_ADDR-1:4] == 'h1)
-         begin
-            // Test for write to fsm_enable override bits
-            if (debug_addr[3:0] == 'h1)
-            begin
-               debug_si_a <= debug_wdata[DBG_A_BITS-1:0];
-            end
-         end
-
-         // Test for read / write of STEW word
-         else if (debug_en_ram && debug_addr == 'h0)
-            debug_si_a <= debug_si_a + 1;
-      end
-   end
 
    /* 
    =================================================================================
@@ -364,7 +338,7 @@ module prism
    localparam CMP_SEL_START   = OUTPUTS_START  + OUTPUTS*(DUAL_COMPARE+2); 
    localparam COND_START      = CMP_SEL_START  + CMP_SEL_SIZE*(DUAL_COMPARE+1);
 
-`ifdef DEBUG_PRISM_STEW
+//`ifdef DEBUG_PRISM_STEW
    initial begin
       $display("RAM_WIDTH       = %d", RAM_WIDTH);
       $display("RAM_DEPTH0      = %d", RAM_DEPTH0);
@@ -376,7 +350,7 @@ module prism
       $display("COND_START      = %d", COND_START);
       $display("W_ADDR          = %d", W_ADDR);
    end
-`endif
+//`endif
 
    // Assign stew either as registered or non-registered ram_dout
    for (genvar f = 0; f <= FRACTURABLE; f++)
@@ -564,8 +538,10 @@ module prism
       for (genvar cond = 0; cond < COND_OUT; cond++)
       begin : COND_OUT_GEN
          // Create OR and AND output for each conditional OUT
-         assign cond_in[f][cond][0] = input_mux_out[f][cond_pos[cond*2]];
-         assign cond_in[f][cond][1] = input_mux_out[f][cond_pos[cond*2+1]];
+         //assign cond_in[f][cond][0] = input_mux_out[f][cond_pos[cond*2]];
+         //assign cond_in[f][cond][1] = input_mux_out[f][cond_pos[cond*2+1]];
+         assign cond_in[f][cond][0] = input_mux_out[f][3];
+         assign cond_in[f][cond][1] = input_mux_out[f][4];
 
          // Drive the conditional output based on enable and ao_sel 
          assign cond_out_c[f][cond] = cond_cfg[f][cond][cond_in[f][cond][COND_LUT_SIZE-1:0]];
@@ -631,7 +607,7 @@ module prism
 
          for (f = 0; f <= FRACTURABLE; f++)
          begin
-            cfg_data_out_mask[f] <= 'h0;
+            cfg_cond_out_mask[f] <= 'h0;
 
             for (cond = 0; cond < COND_OUT; cond++)
                cfg_cond_out_mask[f][cond] <= 'h0;
@@ -749,7 +725,7 @@ module prism
                if (FRACTURABLE)
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
+          4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
                   4'h8:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
                   4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
                   default: debug_rdata_prism = 32'h0; 
@@ -761,6 +737,7 @@ module prism
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                end
+
       4'h3:   begin
                   case (debug_addr[3:0])
                   4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};

@@ -50,6 +50,7 @@ module prism_latch_sit
 `endif
 
    input  wire                   clk,
+   input  wire                   rst_n,
 
    // ============================
    // Debug bus for programming
@@ -71,109 +72,64 @@ module prism_latch_sit
    Instantiate the Latch RAMs
    =================================================================================
    */
-   wire                    config1_write;
-   wire [WIDTH-1:0]        config1_data;
-   wire [DEPTH1-1:0]       config1_latch_en;
-   wire                    config1_busy;
-   wire [WIDTH*DEPTH1-1:0] config1_bus;
+   localparam DEPTH = DEPTH1 + DEPTH2;
+
+   wire                    config_write;
+   wire [WIDTH-1:0]        config_data;
+   wire [DEPTH-1:0]        config_latch_en;
+   wire                    config_busy;
+   wire [WIDTH*DEPTH-1:0]  config_bus;
    wire [WIDTH-1:0]        config1_array [0:DEPTH1-1];
-   wire                    config2_write;
-   wire [WIDTH-1:0]        config2_data;
-   wire [DEPTH2-1:0]       config2_latch_en;
-   wire                    config2_busy;
-   wire [WIDTH*DEPTH2-1:0] config2_bus;
    wire [WIDTH-1:0]        config2_array [0:DEPTH2-1];
-   
+
    /* 
    =================================================================================
    Latch RAM for SI[1]
    =================================================================================
    */
-   assign config1_write = (debug_addr == 6'h10 || debug_addr == 6'h14) && debug_wr;
+   assign config_write = (debug_addr == 6'h10 || debug_addr == 6'h14) && debug_wr;
    latch_loader
    #(
-      .DEPTH    ( DEPTH1 ),
-      .WIDTH    ( WIDTH  )
+      .DEPTH    ( DEPTH ),
+      .WIDTH    ( WIDTH )
     )
-   prism_config1_loader
+   prism_config_loader
    (
-       .clk          ( clk              ),
-       .rst_n        ( rst_n            ),
-       .write_req    ( config1_write    ),
-       .address      ( debug_addr[2:0]  ),
-       .data_in      ( debug_wdata      ),
-       .config_data  ( config1_data     ),
-       .busy         ( config1_busy     ),
-       .latch_en     ( config1_latch_en )
+       .clk          ( clk             ),
+       .rst_n        ( rst_n           ),
+       .write_req    ( config_write    ),
+       .address      ( debug_addr[2:0] ),
+       .data_in      ( debug_wdata     ),
+       .config_data  ( config_data     ),
+       .busy         ( config_busy     ),
+       .latch_en     ( config_latch_en )
    );
 
    latch_shift_reg
    #(
-       .DEPTH ( DEPTH1 ),
-       .WIDTH ( WIDTH  )
+       .DEPTH ( DEPTH ),
+       .WIDTH ( WIDTH )
    )
-   prism_latch_sit_u1
+   i_prism_latch_sit
    (
 `ifdef USE_POWER_PINS
        .VGND(VGND),
        .VPWR(VPWR),
 `endif
         .rst_n        ( rst_n            ),
-        .data_in      ( config1_data     ),
-        .latch_en     ( config1_latch_en ),
-        .data_out     ( config1_bus      )
+        .data_in      ( config_data     ),
+        .latch_en     ( config_latch_en ),
+        .data_out     ( config_bus      )
    );
 
    genvar i;
    generate
        for (i = 0; i < DEPTH1; i = i + 1) begin : unpack_config1
-           assign config1_array[i] = config1_bus[(i+1)*WIDTH-1 -: WIDTH];
+           assign config1_array[i] = config_bus[(i+1)*WIDTH-1 -: WIDTH];
        end
-   endgenerate
  
-   /* 
-   =================================================================================
-   Latch RAM for SI[1]
-   =================================================================================
-   */
-   assign config2_write = (debug_addr == 6'h18 || debug_addr == 6'h1c) && debug_wr;
-   latch_loader
-   #(
-      .DEPTH    ( DEPTH2 ),
-      .WIDTH    ( WIDTH  )
-    )
-   prism_config2_loader
-   (
-       .clk          ( clk              ),
-       .rst_n        ( rst_n            ),
-       .write_req    ( config2_write    ),
-       .address      ( debug_addr[2:0]  ),
-       .data_in      ( debug_wdata      ),
-       .config_data  ( config2_data     ),
-       .busy         ( config2_busy     ),
-       .latch_en     ( config2_latch_en )
-   );
-
-   latch_shift_reg
-   #(
-       .DEPTH ( DEPTH2 ),
-       .WIDTH ( WIDTH  )
-   )
-   prism_latch_sit_u2
-   (
-`ifdef USE_POWER_PINS
-       .VGND(VGND),
-       .VPWR(VPWR),
-`endif
-        .rst_n        ( rst_n            ),
-        .data_in      ( config2_data     ),
-        .latch_en     ( config2_latch_en ),
-        .data_out     ( config2_bus      )
-   );
-
-   generate
-       for (i = 0; i < DEPTH2; i = i + 1) begin : unpack_config2
-           assign config2_array[i] = config2_bus[(i+1)*WIDTH-1 -: WIDTH];
+       for (i = DEPTH1; i < DEPTH; i = i + 1) begin : unpack_config2
+           assign config2_array[i-DEPTH1] = config_bus[(i+1)*WIDTH-1 -: WIDTH];
        end
    endgenerate
  
@@ -194,10 +150,8 @@ module prism_latch_sit
    always @*
    begin
       case (debug_addr)
-      6'h10:   debug_rdata = config1_array[DEPTH1-1][31:0];
-      6'h14:   debug_rdata = {{(64-WIDTH){1'b0}}, config1_array[DEPTH1-1][WIDTH-1:32]};
-      6'h18:   debug_rdata = config2_array[DEPTH2-1][31:0];
-      6'h1C:   debug_rdata = {{(64-WIDTH){1'b0}}, config2_array[DEPTH2-1][WIDTH-1:32]};
+      6'h10:   debug_rdata = config2_array[DEPTH2-1][31:0];
+      6'h14:   debug_rdata = {{(64-WIDTH){1'b0}}, config2_array[DEPTH2-1][WIDTH-1:32]};
       default: debug_rdata = 32'h0;
       endcase
    end

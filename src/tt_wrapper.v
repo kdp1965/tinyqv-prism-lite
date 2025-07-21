@@ -57,7 +57,7 @@ module tt_um_tqv_peripheral_harness (
     .data_read_n(data_read_n),
     .data_out(data_out),
     .data_ready(data_ready),
-    .user_interrupt(uio_out[0])
+    .user_interrupt(user_interrupt)
   );
 
   // SPI data indications
