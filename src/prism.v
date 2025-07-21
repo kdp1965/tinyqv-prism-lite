@@ -712,7 +712,7 @@ module prism
                   case (debug_addr[3:0])
                      4'h0:    debug_rdata_prism = {28'h0, cfg_fractured, fsm_enable_pin_disable, fsm_enable_comb, cfg_program};
                      4'h4:    debug_rdata_prism = debug_ctrl0;
-                     4'h8:    debug_rdata_prism = debug_ctrl1;
+//                     4'h8:    debug_rdata_prism = debug_ctrl1;
                      4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                                  debug_break_active[FRACTURABLE], debug_halt[FRACTURABLE], next_si[FRACTURABLE], curr_si[FRACTURABLE],
                                  debug_break_active[0],           debug_halt[0],           next_si[0],           curr_si[0]};
