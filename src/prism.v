@@ -83,13 +83,13 @@
 module prism
  #(
    parameter  DEPTH          = 8,                  // Total number of available states
-   parameter  INPUTS         = 16,                 // Total number of Input to the module
-   parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
+   parameter  INPUTS         = 8,                  // Total number of Input to the module
+   parameter  OUTPUTS        = 7,                  // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
-   parameter  FRACTURABLE    = 1,
+   parameter  FRACTURABLE    = 0,
    parameter  LUT_SIZE       = 3,
    parameter  INCLUDE_DEBUG  = 1,
    parameter  SI_BITS        = DEPTH > 32 ? 6 :
