@@ -9,7 +9,8 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## What it does
 
-Explain what your peripheral does and how it works
+This is a Programmable Reconfigurable Indexed State Machine (PRISM) that executes a Verilog coded
+state machine that is loaded via a configuration bitstream at runtime.
 
 ## Register map
 
@@ -21,8 +22,11 @@ Document the registers that are used to interact with your peripheral
 
 ## How to test
 
-Explain how to use your project
+1.  First define a Finite State Machine with inputs and outputs.
+2.  Write Verilog to describe your FSM in Mealy format.
+3.  Generate a bitstream using the custom branch of Yosys that supports PRISM (use the provided config file).
+4.  Replace the programming bitstream in the provided C code with your FSM bitstream.
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+No external HW required other than anything custom you might want to control from the programmable FSM.

@@ -40,6 +40,7 @@ module tqvp_prism (
     reg         prism_halt_r;
     reg         prism_interrupt;
     reg   [6:0] extra_in;
+    reg  [31:0] data_out_r;
     wire        prism_wr;
     wire [15:0] prism_in_data;
     wire [10:0] prism_out_data;
@@ -87,11 +88,14 @@ module tqvp_prism (
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
     // All other addresses read 0.
-    assign data_out = (address == 6'h0) ?
-                      (address == 6'h28) ? {4'h0, count1} :
-                      (address == 6'h2C) ? {28'h0, count2} :
-                      {prism_interrupt, prism_reset, prism_enable, prism_read_data[28:0]} :
-                       prism_read_data;
+    assign data_out = data_out_r;
+    always @*
+        case (address)
+        6'h0:    data_out_r = {prism_interrupt, prism_reset, prism_enable, prism_read_data[28:0]};
+        6'h28:   data_out_r = {4'h0, count1};
+        6'h2c:   data_out_r = {28'h0, count2};
+        default: data_out_r = prism_read_data;
+        endcase
 
     // All reads complete in 1 clock
     assign data_ready = 1;
