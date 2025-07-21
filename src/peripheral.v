@@ -88,6 +88,8 @@ module tqvp_prism (
     // Address 4 reads ui_in
     // All other addresses read 0.
     assign data_out = (address == 6'h0) ?
+                      (address == 6'h28) ? {4'h0, count1} :
+                      (address == 6'h2C) ? {28'h0, count2} :
                       {prism_interrupt, prism_reset, prism_enable, prism_read_data[28:0]} :
                        prism_read_data;
 
