@@ -574,12 +574,10 @@ module prism
                 debug_break_active[FRACTURABLE], debug_halt[FRACTURABLE], next_si[FRACTURABLE], curr_si[FRACTURABLE],
                 debug_break_active[0],           debug_halt[0],           next_si[0],           curr_si[0]
               };
-   0x10: STEW0 LSB
-   0x14: STEW0 MSB
-   0x18: STEW1 LSB
-   0x1C: STEW1 MSB
+   0x10: STEW LSB
+   0x14: STEW MSB
    0x20: cfg_data_out_mask[0]
-   0x14: cfg_cond_out_mask[0]
+   0x24: cfg_cond_out_mask[0]
    0x28: cfg_data_out_mask[1]
    0x2c: cfg_cond_out_mask[1]
    0x30: debug_output_bits;
@@ -729,15 +727,15 @@ module prism
                if (FRACTURABLE)
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-//                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
-                  4'h8:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
+                  4'h4:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
+//                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
 //                  4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                else
                   case (debug_addr[3:0])
                   4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-//                  4'h4:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
+//                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
                   default: debug_rdata_prism = 32'h0; 
                   endcase
                end
