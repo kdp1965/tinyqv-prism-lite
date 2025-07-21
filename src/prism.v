@@ -91,7 +91,7 @@ module prism
    parameter  DUAL_COMPARE   = 0,
    parameter  FRACTURABLE    = 0,
    parameter  LUT_SIZE       = 3,
-   parameter  INCLUDE_DEBUG  = 0,
+   parameter  INCLUDE_DEBUG  = 1,
    parameter  SI_BITS        = DEPTH > 32 ? 6 :
                                DEPTH > 16 ? 5 :
                                DEPTH > 8  ? 4 :
@@ -223,7 +223,7 @@ module prism
 
    // Debug control register
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
-   reg  [W_DBG_CTRL-1:0]      debug_ctrl1;
+//   reg  [W_DBG_CTRL-1:0]      debug_ctrl1;
    wire                       debug_halt_req[1:0];
    wire                       debug_step_si[1:0];
    wire                       debug_bp_en0[1:0];
@@ -232,12 +232,14 @@ module prism
    wire  [SI_BITS-1:0]        debug_bp_si1[1:0];
    wire                       debug_new_si[1:0];
    wire  [SI_BITS-1:0]        debug_new_siv[1:0];
+   /*
    reg  [OUTPUTS-1:0]         debug_dout;          // Outputs during debug
    reg  [OUTPUTS-1:0]         debug_dout_new_val;  // New Outputs from debug write
    reg                        debug_dout_new;
    reg                        debug_dout_new_p1;
    reg                        debug_dout_new_p2;
    reg                        debug_dout_new_p3;
+   */
 
    // Debug control regs
    reg  [1:0]                 debug_halt;
@@ -523,7 +525,8 @@ module prism
 
    assign out_data_fsm = fsm_enable_comb ? FRACTURABLE && cfg_fractured ? out_data_m[FRACTURABLE] | out_data_m[0] :
                         out_data_m[0] : {OUTPUTS{1'b0}};
-   assign out_data = INCLUDE_DEBUG & (debug_halt[0] | debug_halt[FRACTURABLE]) ? debug_dout : out_data_fsm;
+   //assign out_data = INCLUDE_DEBUG & (debug_halt[0] | debug_halt[FRACTURABLE]) ? debug_dout : out_data_fsm;
+   assign out_data = out_data_fsm;
 
    /* 
    =================================================================================
@@ -595,12 +598,14 @@ module prism
          fsm_enable_int <= 1'b0;
          fsm_enable_pin_disable <= 1'b0;
          debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
+/*
          debug_ctrl1 <= {W_DBG_CTRL{1'b0}};
          debug_dout_new_val <= 'h0;
          debug_dout_new <= 1'b0;
          debug_dout_new_p1 <= 1'b0;
          debug_dout_new_p2 <= 1'b0;
          debug_dout_new_p3 <= 1'b0;
+         */
 
          /*
          for (f = 0; f <= FRACTURABLE; f++)
@@ -651,6 +656,7 @@ module prism
          if (INCLUDE_DEBUG && debug_wr && (debug_addr[W_ADDR-1:4] == 4'h0))
          begin
             // Test for write to debug_dout bits
+         /*
             if (debug_addr[3:0] == 4'hC)
             begin
                // Save debug register
@@ -660,6 +666,7 @@ module prism
                debug_dout_new_p2 <= 1'b1;
                debug_dout_new_p3 <= 1'b1;
             end
+            */
 
             // Test for write to top-level control reg
             if (debug_addr[3:0] == 4'h4)
@@ -668,13 +675,16 @@ module prism
                debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
             end
 
+            /*
             // Test for write to top-level control reg
             if (debug_addr[3:0] == 4'h8)
             begin
                // Save debug register
                debug_ctrl1 <= debug_wdata[W_DBG_CTRL-1:0];
             end
+            */
          end
+         /*
          else
          begin
             debug_dout_new    <= debug_dout_new_p1;
@@ -682,6 +692,7 @@ module prism
             debug_dout_new_p2 <= debug_dout_new_p3;
             debug_dout_new_p3 <= 1'b0;
          end
+         */
       end
    end
 
@@ -711,7 +722,7 @@ module prism
                   case (debug_addr[3:0])
                      4'h0:    debug_rdata_prism = {29'h0, fsm_enable_pin_disable, fsm_enable_comb, 1'b0};
                      4'h4:    debug_rdata_prism = debug_ctrl0;
-                     4'h8:    debug_rdata_prism = debug_ctrl1;
+//                     4'h8:    debug_rdata_prism = debug_ctrl1;
                      4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                                  2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
                                  debug_break_active[0],           debug_halt[0],           next_si[0],           curr_si[0]};
@@ -739,7 +750,7 @@ module prism
 
       4'h3:   begin
                   case (debug_addr[3:0])
-                  4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
+//                  4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
                   4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
@@ -816,6 +827,7 @@ module prism
    assign debug_new_siv[0]  = debug_ctrl0[SI_BITS*3+5-1 -: SI_BITS];
 
    // Control for fracture unit 1
+/*
    assign debug_halt_req[1] = debug_ctrl1[0];
    assign debug_step_si[1]  = debug_ctrl1[1];
    assign debug_bp_en0[1]   = debug_ctrl1[2];
@@ -824,6 +836,7 @@ module prism
    assign debug_bp_si1[1]   = debug_ctrl1[SI_BITS*2+4-1 -: SI_BITS];
    assign debug_new_si[1]   = debug_ctrl1[SI_BITS*2+4];
    assign debug_new_siv[1]  = debug_ctrl1[SI_BITS*3+5-1 -: SI_BITS];
+*/
 
    /* 
    =================================================================================
@@ -882,7 +895,7 @@ module prism
                // Halt the FSM
                debug_halt[f] <= 1'b1;
                debug_si[f] <= next_si[f];
-               debug_dout <= out_data_fsm;
+//               debug_dout <= out_data_fsm;
                debug_step_pending[f] <= 1'b0;
 
                // If halt requested, clear debug_break_active
@@ -913,8 +926,8 @@ module prism
             end
 
             // Test for new debug_dout load
-            if (debug_dout_new)
-               debug_dout <= debug_dout_new_val;
+//            if (debug_dout_new)
+//               debug_dout <= debug_dout_new_val;
 
             // Test for resume from halt request
             debug_halt_req_p1[f] <= debug_halt_req[f];
