@@ -46,6 +46,8 @@ module tqvp_prism (
     wire [31:0] prism_read_data;
     reg  [27:0] count1_preload;
     reg  [27:0] count1;
+    reg   [3:0] count2;
+    reg   [3:0] count2_preload;
 //    wire        prism_cond_out;
     wire        prism_halt;
 
@@ -102,7 +104,9 @@ module tqvp_prism (
             prism_halt_r    <= 0;
             extra_in        <= '0;
             count1_preload  <= '0;
+            count2_preload  <= '0;
             count1          <= '0;
+            count2          <= '0;
         end
         else
         begin
@@ -125,7 +129,10 @@ module tqvp_prism (
                 extra_in <= data_in[6:0];
             else if (address == 6'h28 && data_write_n == 2'b10)
                 count1_preload <= data_in[27:0];
+            else if (address == 6'h2c && data_write_n != 2'b11)
+                count2_preload <= data_in[3:0];
 
+            // Countdown to zero counter
             if (!prism_halt && count1 && prism_out_data[7])
             begin
                 count1 <= count1 - 1;
@@ -135,11 +142,22 @@ module tqvp_prism (
                 if (prism_enable && !prism_halt && prism_out_data[8])
                     count1 <= count1_preload; 
             end
+
+            // 4-bit count down
+            if (!prism_halt && count2 && prism_out_data[9])
+            begin
+                count2 <= count2 - 1;
+            end
+            else
+            begin
+                if (prism_enable && !prism_halt && prism_out_data[10])
+                    count2 <= count2_preload; 
+            end
         end
     end
 
     assign prism_in_data[14] = count1 == 0;
-    assign prism_in_data[15] = 0;
+    assign prism_in_data[15] = count2 == 0;
 
     assign user_interrupt = prism_interrupt;
 
