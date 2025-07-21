@@ -83,8 +83,8 @@
 module prism
  #(
    parameter  DEPTH          = 8,                  // Total number of available states
-   parameter  INPUTS         = 8,                  // Total number of Input to the module
-   parameter  OUTPUTS        = 7,                  // Nuber of FSM outputs
+   parameter  INPUTS         = 16,                 // Total number of Input to the module
+   parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
