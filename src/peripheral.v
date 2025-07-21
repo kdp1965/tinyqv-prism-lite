@@ -139,6 +139,7 @@ module tqvp_prism (
     end
 
     assign prism_in_data[14] = count1 == 0;
+    assign prism_in_data[15] = 0;
 
     assign user_interrupt = prism_interrupt;
 

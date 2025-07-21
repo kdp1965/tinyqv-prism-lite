@@ -109,9 +109,6 @@ module prism
                                OUTPUTS        * (DUAL_COMPARE+2) + // Output Bits 
                                COND_LUT_BITS  * COND_OUT         + // Conditional output bits
                                1,                                  // Increment bit
-   parameter  RAM_DWIDTH     = RAM_WIDTH > 96 ? 128 : 
-                               RAM_WIDTH > 64 ? 96  :
-                               RAM_WIDTH > 32 ? 64  : 32,
    parameter  W_ADDR         = 6
   )
   (
