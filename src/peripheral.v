@@ -42,7 +42,7 @@ module tqvp_prism (
     reg   [6:0] extra_in;
     wire        prism_wr;
     wire [15:0] prism_in_data;
-    wire [12:0] prism_out_data;
+    wire [10:0] prism_out_data;
     wire [31:0] prism_read_data;
     reg  [27:0] count1_preload;
     reg  [27:0] count1;

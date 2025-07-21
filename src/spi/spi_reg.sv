@@ -203,16 +203,17 @@ module spi_reg #(
   logic [REG_W-1:0] data;
   logic dv;
 
+  assign data = rx_buffer;
     // Data and DataValid (dv) Registers
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
-      data <= '0;
+//      data <= '0;
       dv <= '0;
     end else begin
       if (ena == 1'b1) begin
         dv <= '0;
         if (sample_data == 1'b1) begin
-          data <= rx_buffer;
+//          data <= rx_buffer;
           dv <= (1'b1 & reg_rw);
         end
       end
