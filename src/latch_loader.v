@@ -34,8 +34,8 @@ module latch_loader #(
     begin
         if (!rst_n) begin
             state    <= IDLE;
-            index    <= IDX_BITS'b0;
-            latch_en <= DEPTH'b0;
+            index    <= {IDX_BITS{1'b0}};
+            latch_en <= {DEPTH{1'b0}};
         end else begin
             state    <= next_state;
             latch_en <= next_latch_en;
@@ -60,7 +60,7 @@ module latch_loader #(
     // Latch enable logic
     always @*
     begin
-        next_latch_en = DEPTH'b0;
+        next_latch_en = {DEPTH{1'b0}};
         if (state == SHIFT)
             next_latch_en[index] = 1'b1;
     end
