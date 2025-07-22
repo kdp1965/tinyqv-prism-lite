@@ -43,13 +43,13 @@ module tqvp_prism (
     wire        prism_wr;
     wire [15:0] prism_in_data;
     wire [11:0] prism_out_data;
-    reg  [11:0] prism_out_r;
+    reg  [ 4:0] prism_out_r;
     wire [31:0] prism_read_data;
     reg  [27:0] count1_preload;
     reg  [27:0] count1;
     reg   [3:0] count2;
     reg   [3:0] count2_preload;
-    reg   [6:0] latched_out;
+    reg   [4:0] latched_out;
     wire        prism_halt;
 
     // Instantiate the prism controller
@@ -80,11 +80,12 @@ module tqvp_prism (
     // The We don't use uo_out0 so it can be used for comms with RISC-V
     genvar i;
     generate
-    for (i = 0; i < 7; i = i + 1)
+    for (i = 0; i < 4; i = i + 1)
     begin : GEN_OUT
         assign uo_out[i+1] = latched_out[i] ? prism_out_r[i] : prism_out_data[i];
     end
     endgenerate
+    assign uo_out[7:5] = prism_out_data[6:4];
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -114,15 +115,15 @@ module tqvp_prism (
             count2_preload  <= 4'b0;
             count1          <= 28'b0;
             count2          <= 4'b0;
-            prism_out_r     <= 7'b0;
-            latched_out     <= 7'b0;
+            prism_out_r     <= 5'b0;
+            latched_out     <= 5'b0;
         end
         else
         begin
             // Detect rising edge of HALT
             prism_halt_r <= prism_halt;
             
-            if (prism_halt && !prism_halt_r) begin
+            if ((prism_halt && !prism_halt_r) | prism_out_r[4]) begin
                 prism_interrupt <= 1;
             end else if (address == 6'h0 && data_write_n == 2'b10)
             begin
@@ -133,7 +134,7 @@ module tqvp_prism (
                 // FSM Enable and reset bits
                 prism_reset  <= data_in[30];
                 prism_enable <= data_in[29];
-                latched_out  <= data_in[6:0];
+                latched_out  <= data_in[4:0];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
                 extra_in <= data_in[6:0];
