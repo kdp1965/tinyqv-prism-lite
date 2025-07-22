@@ -9,7 +9,6 @@ module latch_loader #(
     input  wire  [31:0]          data_in,          // Incoming data from RISC-V
     input  wire  [2:0]           address,          // Input address
     output reg   [WIDTH-1:0]     config_data,      // Incoming data from RISC-V
-    output wire                  busy,             // Indicates the FSM is busy
     output reg   [DEPTH-1:0]     latch_en          // Latch enables, active high
 );
 
@@ -25,8 +24,7 @@ module latch_loader #(
     reg  [DEPTH-1:0]     next_latch_en;
     wire                 load;
 
-    // We are busy if we are not in IDLE state
-    assign busy = state != IDLE;
+    // Load when write_req and MSB of config data available
     assign load = write_req && address == 3'h4;
 
     // Sequential state machine

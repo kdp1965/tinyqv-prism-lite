@@ -67,7 +67,6 @@ module prism_latch_sit
    wire                    config_write;
    wire [WIDTH-1:0]        config_data;
    wire [DEPTH-1:0]        config_latch_en;
-   wire                    config_busy;
    wire [WIDTH*DEPTH-1:0]  config_bus;
    wire [WIDTH-1:0]        config1_array [0:DEPTH-1];
 
@@ -90,7 +89,6 @@ module prism_latch_sit
        .address      ( debug_addr[2:0] ),
        .data_in      ( debug_wdata     ),
        .config_data  ( config_data     ),
-       .busy         ( config_busy     ),
        .latch_en     ( config_latch_en )
    );
 
