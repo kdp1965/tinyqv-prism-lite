@@ -82,7 +82,7 @@
 */
 module prism
  #(
-   parameter  DEPTH          = 10,                 // Total number of available states
+   parameter  DEPTH          = 8,                  // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
    parameter  OUTPUTS        = 12,                 // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
