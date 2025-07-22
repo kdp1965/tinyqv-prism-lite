@@ -126,7 +126,6 @@ module prism
 
    // Output data
    output  wire [OUTPUTS-1:0]    out_data,         // Bit Slip pulse back to SerDes
-//   output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
 
    // ============================
    // Debug bus for programming
@@ -146,8 +145,6 @@ module prism
    localparam CMP_SEL_SIZE= 2**LUT_SIZE;
    localparam W_DBG_CTRL  = SI_BITS*3 + 6;
    localparam RAM_DEPTH   = DEPTH;
-
-   reg                        cfg_fractured;
 
    // Signal declarations
    reg   [SI_BITS-1:0]        curr_si;         // Current State Index value
@@ -416,7 +413,7 @@ module prism
    =================================================================================
    Debug Bus Register Map:
 
-   0x00: Config:  {29'h0, cfg_fractured, 1'b0, fsm_enable, 1'b0}
+   0x00: 
    0x04: debug_ctrl0
    0x08: debug_ctrl1
    0x0c: Current State info

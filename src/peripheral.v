@@ -85,6 +85,7 @@ module tqvp_prism (
         assign uo_out[i+1] = latched_out[i] ? prism_out_r[i] : prism_out_data[i];
     end
     endgenerate
+    assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0] = ui_in[6:0];
@@ -114,6 +115,7 @@ module tqvp_prism (
             count1          <= 28'b0;
             count2          <= 4'b0;
             prism_out_r     <= 7'b0;
+            latched_out     <= 7'b0;
         end
         else
         begin
