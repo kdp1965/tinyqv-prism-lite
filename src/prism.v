@@ -202,6 +202,7 @@ module prism
    wire  [SI_BITS-1:0]        debug_bp_si1;
    wire                       debug_new_si;
    wire  [SI_BITS-1:0]        debug_new_siv;
+   reg   [OUTPUTS-1:0]        debug_dout;          // Outputs during debug
 
    // Debug control regs
    reg                        debug_halt;
@@ -211,7 +212,6 @@ module prism
    reg                        debug_step_si_last;
    reg  [1:0]                 debug_break_active;
    reg  [31:0]                decision_tree_data;  // Peripheral read data
-
 
    /* 
    =================================================================================
@@ -409,8 +409,8 @@ module prism
    assign out_data_m = out_data_c;
 
    assign out_data_fsm = fsm_enable ? out_data_m[0] : {OUTPUTS{1'b0}};
-   //assign out_data = INCLUDE_DEBUG & (debug_halt[0] | debug_halt[FRACTURABLE]) ? debug_dout : out_data_fsm;
-   assign out_data = out_data_fsm;
+   assign out_data = INCLUDE_DEBUG & debug_halt ? debug_dout : out_data_fsm;
+   //assign out_data = out_data_fsm;
 
    /* 
    =================================================================================
@@ -438,60 +438,20 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         cfg_fractured <= 1'b0;
          debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
-/*
-         debug_ctrl1 <= {W_DBG_CTRL{1'b0}};
-         debug_dout_new_val <= 'h0;
-         debug_dout_new <= 1'b0;
-         debug_dout_new_p1 <= 1'b0;
-         debug_dout_new_p2 <= 1'b0;
-         debug_dout_new_p3 <= 1'b0;
-         */
       end
       else
       begin
          // Test for write to debug output register
          if (INCLUDE_DEBUG && debug_wr && (debug_addr[W_ADDR-1:4] == 2'h0))
          begin
-            // Test for write to debug_dout bits
-         /*
-            if (debug_addr[3:0] == 4'hC)
-            begin
-               // Save debug register
-               debug_dout_new_val <= debug_wdata[OUTPUTS-1:0];
-               debug_dout_new <= 1'b1;
-               debug_dout_new_p1 <= 1'b1;
-               debug_dout_new_p2 <= 1'b1;
-               debug_dout_new_p3 <= 1'b1;
-            end
-            */
-
             // Test for write to top-level control reg
             if (debug_addr[3:0] == 4'h4)
             begin
                // Save debug register
                debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
             end
-
-            /*
-            // Test for write to top-level control reg
-            if (debug_addr[3:0] == 4'h8)
-            begin
-               // Save debug register
-               debug_ctrl1 <= debug_wdata[W_DBG_CTRL-1:0];
-            end
-            */
          end
-         /*
-         else
-         begin
-            debug_dout_new    <= debug_dout_new_p1;
-            debug_dout_new_p1 <= debug_dout_new_p2;
-            debug_dout_new_p2 <= debug_dout_new_p3;
-            debug_dout_new_p3 <= 1'b0;
-         end
-         */
       end
    end
 
@@ -520,6 +480,7 @@ module prism
 
       4'h3:   begin
                   case (debug_addr[3:0])
+                  4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
                   4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
@@ -610,6 +571,7 @@ module prism
 
          debug_si <={SI_BITS{1'b0}};
          debug_break_active <= 2'h0;
+         debug_dout <= {OUTPUTS{1'b0}};
       end
       else
       begin
@@ -643,7 +605,7 @@ module prism
             // Halt the FSM
             debug_halt <= 1'b1;
             debug_si <= next_si;
-//            debug_dout <= out_data_fsm;
+            debug_dout <= out_data_fsm;
             debug_step_pending <= 1'b0;
 
             // If halt requested, clear debug_break_active
@@ -673,9 +635,11 @@ module prism
             debug_break_active <= 2'b0;
          end
 
-         // Test for new debug_dout load
-//         if (debug_dout_new)
-//            debug_dout <= debug_dout_new_val;
+         else if (INCLUDE_DEBUG && debug_wr && (debug_addr == 6'h30))
+         begin
+            // Save debug register
+            debug_dout <= debug_wdata[OUTPUTS-1:0];
+         end
 
          // Test for resume from halt request
          debug_halt_req_p1 <= debug_halt_req;
