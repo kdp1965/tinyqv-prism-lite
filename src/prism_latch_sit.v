@@ -30,18 +30,12 @@
 module prism_latch_sit
 #(
    parameter  WIDTH       = 80,
-   parameter  DEPTH1      = 2,
-   parameter  DEPTH2      = 2,
-   parameter  A_BITS1     = DEPTH1 > 32 ? 6 :
-                            DEPTH1 > 16 ? 5 : 
-                            DEPTH1 > 8  ? 4 :
-                            DEPTH1 > 4  ? 3 :
-                            DEPTH1 > 2  ? 2 : 1,
-   parameter  A_BITS2     = DEPTH2 > 32 ? 6 :
-                            DEPTH2 > 16 ? 5 : 
-                            DEPTH2 > 8  ? 4 :
-                            DEPTH2 > 4  ? 3 :
-                            DEPTH2 > 2  ? 2 : 1
+   parameter  DEPTH       = 2,
+   parameter  A_BITS      = DEPTH > 32 ? 6 :
+                            DEPTH > 16 ? 5 : 
+                            DEPTH > 8  ? 4 :
+                            DEPTH > 4  ? 3 :
+                            DEPTH > 2  ? 2 : 1
 )
 (
 `ifdef USE_POWER_PINS
@@ -61,10 +55,8 @@ module prism_latch_sit
    output reg  [31:0]            debug_rdata,   // Debug read data
 
    // Read addresses and data
-   input   wire [A_BITS1-1:0]    raddr1,        // Read address 1
-   input   wire [A_BITS2-1:0]    raddr2,        // Read address 2
-   output  reg  [WIDTH-1:0]      rdata1,        // Output for SI signal
-   output  reg  [WIDTH-1:0]      rdata2         // Output for SI signal
+   input   wire [A_BITS-1:0]     raddr1,        // Read address 1
+   output  reg  [WIDTH-1:0]      rdata1         // Output for SI signal
 );
 
    /* 
@@ -72,15 +64,12 @@ module prism_latch_sit
    Instantiate the Latch RAMs
    =================================================================================
    */
-   localparam DEPTH = DEPTH1 + DEPTH2;
-
    wire                    config_write;
    wire [WIDTH-1:0]        config_data;
    wire [DEPTH-1:0]        config_latch_en;
    wire                    config_busy;
    wire [WIDTH*DEPTH-1:0]  config_bus;
-   wire [WIDTH-1:0]        config1_array [0:DEPTH1-1];
-   wire [WIDTH-1:0]        config2_array [0:DEPTH2-1];
+   wire [WIDTH-1:0]        config1_array [0:DEPTH-1];
 
    /* 
    =================================================================================
@@ -124,12 +113,8 @@ module prism_latch_sit
 
    genvar i;
    generate
-       for (i = 0; i < DEPTH1; i = i + 1) begin : unpack_config1
+       for (i = 0; i < DEPTH; i = i + 1) begin : unpack_config1
            assign config1_array[i] = config_bus[(i+1)*WIDTH-1 -: WIDTH];
-       end
- 
-       for (i = DEPTH1; i < DEPTH; i = i + 1) begin : unpack_config2
-           assign config2_array[i-DEPTH1] = config_bus[(i+1)*WIDTH-1 -: WIDTH];
        end
    endgenerate
  
@@ -140,7 +125,6 @@ module prism_latch_sit
    =================================================================================
    */
    assign rdata1 = config1_array[raddr1];
-   assign rdata2 = config2_array[raddr2];
 
    /* 
    =================================================================================
@@ -150,8 +134,8 @@ module prism_latch_sit
    always @*
    begin
       case (debug_addr)
-      6'h10:   debug_rdata = config2_array[DEPTH2-1][31:0];
-      6'h14:   debug_rdata = {{(64-WIDTH){1'b0}}, config2_array[DEPTH2-1][WIDTH-1:32]};
+      6'h10:   debug_rdata = config1_array[DEPTH-1][31:0];
+      6'h14:   debug_rdata = {{(64-WIDTH){1'b0}}, config1_array[DEPTH-1][WIDTH-1:32]};
       default: debug_rdata = 32'h0;
       endcase
    end

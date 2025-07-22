@@ -89,7 +89,6 @@ module prism
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
-   parameter  FRACTURABLE    = 0,
    parameter  LUT_SIZE       = 3,
    parameter  INCLUDE_DEBUG  = 1,
    parameter  SI_BITS        = DEPTH > 32 ? 6 :
@@ -141,81 +140,54 @@ module prism
 
 
    localparam W_PAR_IN    = INPUT_BITS;
-   localparam HALF_IN     = STATE_INPUTS / 2;
-   localparam DEPTH_HALF  = DEPTH > 256 ? 256 : DEPTH > 128 ? 128 : DEPTH > 64 ? 64 : DEPTH > 32 ? 32 : 
-                            DEPTH > 16 ? 16 : DEPTH > 8 ? 8 : DEPTH > 4 ? 4 : DEPTH > 2 ? 2 : 1;
-   localparam DEPTH_REM   = DEPTH - DEPTH_HALF;
-   localparam DH_BITS     = DEPTH_HALF == 256 ? 8 : DEPTH_HALF == 128 ? 7 : DEPTH_HALF == 64 ? 6 :
-                            DEPTH_HALF == 32 ? 5 : DEPTH_HALF == 16 ? 4 : DEPTH_HALF == 8 ? 3 : 
-                            DEPTH_HALF == 4 ? 2 : 1;
-   localparam DR_BITS     = DEPTH_REM == 256 ? 8 : DEPTH_REM == 128 ? 7 : DEPTH_REM == 64 ? 6 :
-                            DEPTH_REM == 32 ? 5 : DEPTH_REM == 16 ? 4 : DEPTH_REM == 8 ? 3 : 
-                            DEPTH_REM == 4 ? 2 : 1;
+   localparam RA_BITS     = DEPTH > 256 ? 9 : DEPTH > 128 ? 8 : DEPTH > 64 ? 7 :
+                            DEPTH >  32 ? 6 : DEPTH > 16  ? 5 : DEPTH > 8 ? 4 : 
+                            DEPTH >  4 ? 3 : 2;
    localparam CMP_SEL_SIZE= 2**LUT_SIZE;
    localparam W_DBG_CTRL  = SI_BITS*3 + 6;
    localparam RAM_DEPTH   = DEPTH;
-   localparam RAM_DEPTH1  = RAM_DEPTH / 2;
-   localparam RAM_DEPTH0  = RAM_DEPTH - RAM_DEPTH1;
-   localparam DBG_MSB_BITS= ((RAM_DEPTH1 + RAM_DEPTH0) > 4 ? 3 :
-                             (RAM_DEPTH1 + RAM_DEPTH0) > 2 ? 2 : 1);
-   localparam DBG_A_BITS  = 3 + DBG_MSB_BITS;
 
-   reg                        cfg_program;
-   reg                        fsm_enable_comb;        // Enable signal
-   reg                        fsm_enable_int;         // Enable signal
-   reg                        fsm_enable_pin_disable; // Disable for fsm_enable input pin 
    reg                        cfg_fractured;
 
    // Signal declarations
-   reg   [SI_BITS-1:0]        curr_si[1:0];         // Current State Index value
-   reg   [SI_BITS-1:0]        next_si[1:0];         // Next State Index value
-   reg   [SI_BITS-1:0]        loop_si[1:0];         // Loop State Index value
-   reg                        loop_valid[1:0];      // Indiactes if loop_si value is valid
-   reg   [SI_BITS-1:0]        debug_si[1:0];        // Current State Index value
-   reg                        debug_new_si_p1[1:0];     // Current State Index value
-   reg                        debug_new_si_p2[1:0];     // Current State Index value
-   reg                        debug_new_si_p3[1:0];     // Current State Index value
+   reg   [SI_BITS-1:0]        curr_si;         // Current State Index value
+   reg   [SI_BITS-1:0]        next_si;         // Next State Index value
+   reg   [SI_BITS-1:0]        loop_si;         // Loop State Index value
+   reg                        loop_valid;      // Indiactes if loop_si value is valid
+   reg   [SI_BITS-1:0]        debug_si;        // Current State Index value
+   reg                        debug_new_si_p1;     // Current State Index value
+   reg                        debug_new_si_p2;     // Current State Index value
+   reg                        debug_new_si_p3;     // Current State Index value
 
    // Signals to create parallel input muxes
-   wire  [W_PAR_IN-1:0]       input_mux_sel [ FRACTURABLE:0 ] [ STATE_INPUTS-1:0 ];
-   reg                        input_mux_out_c [ FRACTURABLE:0 ] [ STATE_INPUTS-1:0 ];
-   wire                       input_mux_out   [ FRACTURABLE:0 ] [ STATE_INPUTS-1:0 ];
+   wire  [W_PAR_IN-1:0]       input_mux_sel [ STATE_INPUTS-1:0 ];
+   reg                        input_mux_out_c [ STATE_INPUTS-1:0 ];
+   wire                       input_mux_out   [ STATE_INPUTS-1:0 ];
 
    // RAM interface signals for output values
-   wire  [OUTPUTS-1:0]        state_outputs [ FRACTURABLE:0 ];                // Output values from RAM
-   wire  [OUTPUTS-1:0]        jump_outputs  [ FRACTURABLE:0 ] [ DUAL_COMPARE:0 ]; // Jumpto transition Output values
+   wire  [OUTPUTS-1:0]        state_outputs ;                // Output values from RAM
+   wire  [OUTPUTS-1:0]        jump_outputs  [ DUAL_COMPARE:0 ]; // Jumpto transition Output values
 
    // RAM interface signals for SI control
-   wire  [SI_BITS-1:0]        jump_to [ FRACTURABLE:0 ] [ DUAL_COMPARE:0 ];      // SI Jump to address
-   wire                       inc_si  [ FRACTURABLE:0 ];                       // SI Inc signal
+   wire  [SI_BITS-1:0]        jump_to [ DUAL_COMPARE:0 ];      // SI Jump to address
+   wire                       inc_si ;                       // SI Inc signal
 
    // Compare signals from RAM
-   wire  [CMP_SEL_SIZE-1:0]   cmp_sel [ FRACTURABLE:0 ] [ DUAL_COMPARE:0 ];
+   wire  [CMP_SEL_SIZE-1:0]   cmp_sel [ DUAL_COMPARE:0 ];
 		
    // Signals for doing input compare and muxing
-   wire  [DUAL_COMPARE:0]     compare_match [ FRACTURABLE:0 ];
-
-   // Conditional out control signals
-//   wire  [COND_LUT_BITS-1:0]  cond_cfg    [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-//   wire  [1:0]                cond_in     [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-//   wire                       cond_out_c  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
-//   wire                       cond_out_m  [ FRACTURABLE:0 ] [ COND_OUT-1:0 ];
+   wire  [DUAL_COMPARE:0]     compare_match;
 
    // Output data masking
-   wire  [OUTPUTS-1:0]        out_data_c  [ FRACTURABLE:0 ];
-   wire  [OUTPUTS-1:0]        out_data_m  [ FRACTURABLE:0 ];
+   wire  [OUTPUTS-1:0]        out_data_c  ;
+   wire  [OUTPUTS-1:0]        out_data_m  ;
    wire  [OUTPUTS-1:0]        out_data_fsm;        // FSM outputs
    
    // Memory control signals
-   wire  [RAM_WIDTH-1:0]      ram_dout_c  [ 1:0 ];
-   wire  [RAM_WIDTH-1:0]      ram_dout    [ FRACTURABLE:0 ];
-   wire  [DH_BITS-1:0]        ram_raddr1;
-   wire  [DR_BITS-1:0]        ram_raddr2;
-   wire  [RAM_WIDTH-1:0]      stew        [ FRACTURABLE:0 ];           // State Execution Word
-
-   // Config data
-   reg   [OUTPUTS-1:0]        cfg_data_out_mask [ FRACTURABLE:0 ];
-//   reg   [COND_OUT-1:0]       cfg_cond_out_mask [ FRACTURABLE:0 ];
+   wire  [RAM_WIDTH-1:0]      ram_dout_c;
+   wire  [RAM_WIDTH-1:0]      ram_dout;
+   wire  [RA_BITS-1:0]        ram_raddr1;
+   wire  [RAM_WIDTH-1:0]      stew;           // State Execution Word
 
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
@@ -223,57 +195,24 @@ module prism
 
    // Debug control register
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
-//   reg  [W_DBG_CTRL-1:0]      debug_ctrl1;
-   wire                       debug_halt_req[1:0];
-   wire                       debug_step_si[1:0];
-   wire                       debug_bp_en0[1:0];
-   wire                       debug_bp_en1[1:0];
-   wire  [SI_BITS-1:0]        debug_bp_si0[1:0];
-   wire  [SI_BITS-1:0]        debug_bp_si1[1:0];
-   wire                       debug_new_si[1:0];
-   wire  [SI_BITS-1:0]        debug_new_siv[1:0];
-   /*
-   reg  [OUTPUTS-1:0]         debug_dout;          // Outputs during debug
-   reg  [OUTPUTS-1:0]         debug_dout_new_val;  // New Outputs from debug write
-   reg                        debug_dout_new;
-   reg                        debug_dout_new_p1;
-   reg                        debug_dout_new_p2;
-   reg                        debug_dout_new_p3;
-   */
+   wire                       debug_halt_req;
+   wire                       debug_step_si;
+   wire                       debug_bp_en0;
+   wire                       debug_bp_en1;
+   wire  [SI_BITS-1:0]        debug_bp_si0;
+   wire  [SI_BITS-1:0]        debug_bp_si1;
+   wire                       debug_new_si;
+   wire  [SI_BITS-1:0]        debug_new_siv;
 
    // Debug control regs
-   reg  [1:0]                 debug_halt;
-   reg  [1:0]                 debug_step_pending;
-   reg  [1:0]                 debug_resume_pending;
-   reg  [1:0]                 debug_halt_req_p1;
-   reg  [1:0]                 debug_step_si_last;
-   reg  [1:0]                 debug_break_active[1:0];
+   reg                        debug_halt;
+   reg                        debug_step_pending;
+   reg                        debug_resume_pending;
+   reg                        debug_halt_req_p1;
+   reg                        debug_step_si_last;
+   reg  [1:0]                 debug_break_active;
    reg  [31:0]                decision_tree_data;  // Peripheral read data
 
-   /*
-   integer      cond_pos[14];
-
-   assign cond_pos[0]   = 0;
-   assign cond_pos[1]   = 1;
-
-   assign cond_pos[2]   = STATE_INPUTS-2;
-   assign cond_pos[3]   = STATE_INPUTS-1;
-
-   assign cond_pos[4]   = 2;
-   assign cond_pos[5]   = HALF_IN;
-
-   assign cond_pos[6]   = HALF_IN;
-   assign cond_pos[7]   = HALF_IN+1;
-
-   assign cond_pos[8]   = HALF_IN+2;
-   assign cond_pos[9]   = HALF_IN;
-
-   assign cond_pos[10]  = HALF_IN+1;
-   assign cond_pos[11]  = HALF_IN+1;
-
-   assign cond_pos[12]  = 3;
-   assign cond_pos[13]  = HALF_IN+2;
-   */
 
    /* 
    =================================================================================
@@ -287,10 +226,7 @@ module prism
    prism_latch_sit
    #(
       .WIDTH   ( RAM_WIDTH     ),
-      .DEPTH1  ( RAM_DEPTH0    ),
-      .DEPTH2  ( RAM_DEPTH1    ),
-      .A_BITS1 ( DH_BITS       ),
-      .A_BITS2 ( DR_BITS       )
+      .DEPTH   ( RAM_DEPTH     )
     )
    prism_latch_sit_i
    (
@@ -309,20 +245,11 @@ module prism
                                                        
       // PRISM interface                               
       .raddr1                ( ram_raddr1       ),
-      .raddr2                ( ram_raddr2       ),
-      .rdata1                ( ram_dout_c[0]    ),
-      .rdata2                ( ram_dout_c[1]    )
+      .rdata1                ( ram_dout         )
    );
 
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin: GEN_RAM_DOUT
-      assign ram_dout[f] = FRACTURABLE && cfg_fractured ? ram_dout_c[f] : 
-                  f > 0 ? 'h0 : curr_si[0][SI_BITS-1] ? ram_dout_c[1] : ram_dout_c[0];
-   end
-
    assign debug_rdata  = debug_rdata_prism;
-   assign ram_raddr1   = curr_si[0][DH_BITS-1:0];
-   assign ram_raddr2   = curr_si[1][DR_BITS-1:0];
+   assign ram_raddr1   = curr_si;
 
    /* 
    =================================================================================
@@ -340,8 +267,7 @@ module prism
 //`ifdef DEBUG_PRISM_STEW
    initial begin
       $display("RAM_WIDTH       = %d", RAM_WIDTH);
-      $display("RAM_DEPTH0      = %d", RAM_DEPTH0);
-      $display("RAM_DEPTH1      = %d", RAM_DEPTH1);
+      $display("RAM_DEPTH       = %d", RAM_DEPTH);
       $display("INPUT_SEL_START = %d", INPUT_SEL_START);
       $display("OUTPUTS_START   = %d", OUTPUTS_START);
       $display("JUMP_TO_START   = %d", JUMP_TO_START); 
@@ -352,44 +278,32 @@ module prism
 //`endif
 
    // Assign stew either as registered or non-registered ram_dout
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin: GEN_STEW
-      assign stew[f] = ram_dout[f][RAM_WIDTH-1:0];
-   end
+   assign stew = ram_dout[RAM_WIDTH-1:0];
 
    // Now map the stew to the individual fields
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin: GEN_CTRL
-      for (genvar cmp = 0; cmp < DUAL_COMPARE+1; cmp++)
-      begin : OPCODE_ASSIGN_GEN
-         // Assign JumpTo bits
-         assign jump_to[f][cmp]       = stew[f][SI_BITS           + JUMP_TO_START + SI_BITS*(DUAL_COMPARE-cmp) -1      -: SI_BITS];
+   for (genvar cmp = 0; cmp < DUAL_COMPARE+1; cmp++)
+   begin : OPCODE_ASSIGN_GEN
+      // Assign JumpTo bits
+      assign jump_to[cmp]       = stew[SI_BITS           + JUMP_TO_START + SI_BITS*(DUAL_COMPARE-cmp) -1      -: SI_BITS];
 
-         // Assign jump_outputs
-         assign jump_outputs[f][cmp]  = stew[f][OUTPUTS           + OUTPUTS_START + OUTPUTS*((DUAL_COMPARE-cmp)+1) -1  -: OUTPUTS];
+      // Assign jump_outputs
+      assign jump_outputs[cmp]  = stew[OUTPUTS           + OUTPUTS_START + OUTPUTS*((DUAL_COMPARE-cmp)+1) -1  -: OUTPUTS];
 
-         // Assign cmp_sel bits
-         assign cmp_sel[f][cmp]       = stew[f][CMP_SEL_SIZE*(cmp+1)-1+ CMP_SEL_START -: CMP_SEL_SIZE];
-      end
-
-      // Assign conditional output bits
-//      for (genvar cond = 0; cond < COND_OUT; cond++)
-//      begin : COND_ASSIGN_GEN
-//         assign cond_cfg[f][cond]     = stew[f][COND_LUT_BITS*cond + COND_START +: COND_LUT_BITS]; 
-//      end
-
-      // Assign output bits
-      assign state_outputs[f]         = stew[f][OUTPUTS     + OUTPUTS_START-1 -: OUTPUTS];
-
-      // Assign Input mux selection bits
-      for (genvar inp = 0; inp < STATE_INPUTS; inp++)
-      begin: GEN_IN_MUX_SEL
-         assign input_mux_sel[f][inp] = stew[f][INPUT_SEL_START + W_PAR_IN * (inp+1) - 1 -: W_PAR_IN];
-      end
-
-      // Assign increment bit
-      assign inc_si[f]                = stew[f][0];
+      // Assign cmp_sel bits
+      assign cmp_sel[cmp]       = stew[CMP_SEL_SIZE*(cmp+1)-1+ CMP_SEL_START -: CMP_SEL_SIZE];
    end
+
+   // Assign output bits
+   assign state_outputs         = stew[OUTPUTS     + OUTPUTS_START-1 -: OUTPUTS];
+
+   // Assign Input mux selection bits
+   for (genvar inp = 0; inp < STATE_INPUTS; inp++)
+   begin: GEN_IN_MUX_SEL
+      assign input_mux_sel[inp] = stew[INPUT_SEL_START + W_PAR_IN * (inp+1) - 1 -: W_PAR_IN];
+   end
+
+   // Assign increment bit
+   assign inc_si                = stew[0];
 
    /* 
    =================================================================================
@@ -405,7 +319,7 @@ module prism
       end
       else
       begin
-         if (!cfg_program & fsm_enable_comb)
+         if (fsm_enable)
          begin
             curr_si[0] <= next_si[0];
             curr_si[1] <= next_si[1];
@@ -418,16 +332,13 @@ module prism
    Logic for next SI 
    =================================================================================
    */
-   for (genvar s = 0; s <= 1; s++)
-   begin: GEN_NEXT_SI
-      assign next_si[s] = debug_halt[s] ? debug_si[s] : 
-                          compare_match[FRACTURABLE?s:0][0] ? jump_to[FRACTURABLE?s:0][0] :
-                          DUAL_COMPARE && compare_match[FRACTURABLE?s:0][DUAL_COMPARE] ? jump_to[FRACTURABLE?s:0][DUAL_COMPARE] :
-                          inc_si[FRACTURABLE?s:0] ? curr_si[s] + 1 :
-                          loop_valid[FRACTURABLE?s:0] ? loop_si[FRACTURABLE?s:0] :
-                          curr_si[s];
-   end
-   assign debug_halt_either = debug_halt[0] | debug_halt[1];
+   assign next_si = debug_halt ? debug_si : 
+                       compare_match[0] ? jump_to[0] :
+                       DUAL_COMPARE && compare_match[DUAL_COMPARE] ? jump_to[DUAL_COMPARE] :
+                       inc_si ? curr_si + 1 :
+                       loop_valid ? loop_si :
+                       curr_si;
+   assign debug_halt_either = debug_halt;
 
    /* 
    =================================================================================
@@ -436,33 +347,20 @@ module prism
    */
    always @(posedge clk)
    begin
-      integer f;
-
       if (~rst_n | debug_reset)
       begin
-         fsm_enable_comb <= 1'b0;
-
-         for (f = 0; f <= FRACTURABLE; f++)
-         begin
-            loop_valid[f] <= 1'b0;
-            loop_si[f] <= 'h0;
-         end
+         loop_valid <= 1'b0;
+         loop_si <= 'h0;
       end
       else
       begin
-         // Enable FSM from either input pin or internal register
-         fsm_enable_comb <= (fsm_enable & !fsm_enable_pin_disable) | fsm_enable_int;
+         if (compare_match[0] || compare_match[DUAL_COMPARE])
+            loop_valid <= 1'b0;
 
-         for (f = 0; f <= FRACTURABLE; f++)
+         else if (inc_si && ~loop_valid)
          begin
-            if (compare_match[f][0] || compare_match[f][DUAL_COMPARE])
-               loop_valid[f] <= 1'b0;
-
-            else if (inc_si[f] && ~loop_valid[f])
-            begin
-               loop_valid[f] <= 1'b1;
-               loop_si[f] <= curr_si[f];
-            end
+            loop_valid <= 1'b1;
+            loop_si <= curr_si;
          end
       end
    end
@@ -473,13 +371,10 @@ module prism
    =================================================================================
    */
    generate
-      for (genvar f = 0; f <= FRACTURABLE; f++)
-      begin: GEN_INPUT_MUX
-         for (genvar inp = 0; inp < STATE_INPUTS; inp++)
-         begin : STATE_IN_MUX_GEN
-            assign input_mux_out_c[f][inp] = in_data[input_mux_sel[f][inp]];
-            assign input_mux_out[f][inp] = input_mux_out_c[f][inp];
-         end
+      for (genvar inp = 0; inp < STATE_INPUTS; inp++)
+      begin : STATE_IN_MUX_GEN
+         assign input_mux_out_c[inp] = in_data[input_mux_sel[inp]];
+         assign input_mux_out[inp] = input_mux_out_c[inp];
       end
    endgenerate
 
@@ -488,22 +383,19 @@ module prism
    For each state index, Generate a LUT
    =================================================================================
    */
-   wire [LUT_SIZE-1:0] lut_inputs[FRACTURABLE:0][DUAL_COMPARE : 0];
+   wire [LUT_SIZE-1:0] lut_inputs[DUAL_COMPARE : 0];
 
    generate
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin: GEN_LUTS_F
-      // Simple LUT4 lookup
-      for (genvar cmp = 0; cmp < DUAL_COMPARE+1; cmp++)
-      begin : CMP_INST
-         // Map MUX outputs to lut inputs
-         for (genvar inp = 0; inp < LUT_SIZE; inp++)
-         begin: GEN_LUT_INPUTS
-            assign lut_inputs[f][cmp][inp] = input_mux_out[f][cmp*(STATE_INPUTS-LUT_SIZE)+inp];
-         end
-         
-         assign compare_match[f][cmp] = cmp_sel[f][cmp][lut_inputs[f][cmp]];
+   // Simple LUT4 lookup
+   for (genvar cmp = 0; cmp < DUAL_COMPARE+1; cmp++)
+   begin : CMP_INST
+      // Map MUX outputs to lut inputs
+      for (genvar inp = 0; inp < LUT_SIZE; inp++)
+      begin: GEN_LUT_INPUTS
+         assign lut_inputs[cmp][inp] = input_mux_out[cmp*(STATE_INPUTS-LUT_SIZE)+inp];
       end
+      
+      assign compare_match[cmp] = cmp_sel[cmp][lut_inputs[cmp]];
    end
    endgenerate
 
@@ -512,61 +404,22 @@ module prism
    Assign the output values.
    =================================================================================
    */
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin: GEN_OUT_DATA
-      // Assign outputs based on state compare
-      assign out_data_c[f] = compare_match[f][0] ? jump_outputs[f][0] : DUAL_COMPARE && 
-            compare_match[f][DUAL_COMPARE] ? jump_outputs[f][DUAL_COMPARE] : state_outputs[f];
+   // Assign outputs based on state compare
+   assign out_data_c = compare_match[0] ? jump_outputs[0] : DUAL_COMPARE && 
+         compare_match[DUAL_COMPARE] ? jump_outputs[DUAL_COMPARE] : state_outputs;
 
-      // If fractured, mask output bits based on config settings
-      assign out_data_m[f] = FRACTURABLE && cfg_fractured ? out_data_c[f] & cfg_data_out_mask[f]
-                              : out_data_c[f];
-   end
+   // If fractured, mask output bits based on config settings
+   assign out_data_m = out_data_c;
 
-   assign out_data_fsm = fsm_enable_comb ? FRACTURABLE && cfg_fractured ? out_data_m[FRACTURABLE] | out_data_m[0] :
-                        out_data_m[0] : {OUTPUTS{1'b0}};
+   assign out_data_fsm = fsm_enable ? out_data_m[0] : {OUTPUTS{1'b0}};
    //assign out_data = INCLUDE_DEBUG & (debug_halt[0] | debug_halt[FRACTURABLE]) ? debug_dout : out_data_fsm;
    assign out_data = out_data_fsm;
 
    /* 
    =================================================================================
-   Assign the conditional outputs
-   =================================================================================
-   */
-   /*
-   for (genvar f = 0; f <= FRACTURABLE; f++)
-   begin : COND_FRAC_GEN
-      for (genvar cond = 0; cond < COND_OUT; cond++)
-      begin : COND_OUT_GEN
-         // Create OR and AND output for each conditional OUT
-         //assign cond_in[f][cond][0] = input_mux_out[f][cond_pos[cond*2]];
-         //assign cond_in[f][cond][1] = input_mux_out[f][cond_pos[cond*2+1]];
-         assign cond_in[f][cond][0] = input_mux_out[f][3];
-         assign cond_in[f][cond][1] = input_mux_out[f][4];
-
-         // Drive the conditional output based on enable and ao_sel 
-         assign cond_out_c[f][cond] = cond_cfg[f][cond][cond_in[f][cond][COND_LUT_SIZE-1:0]];
-
-         // Assign masked registers based on fractured state
-         assign cond_out_m[f][cond] = FRACTURABLE && cfg_fractured ? cond_out_c[f][cond] & cfg_cond_out_mask[f][cond] :
-                                       cond_out_c[f][cond];
-      end
-   end
-
-   for (genvar cond = 0; cond < COND_OUT; cond++)
-   begin : COND_OUT_GEN
-      // Assign final conditional outputs
-      assign cond_out[cond] = fsm_enable_comb ? ((FRACTURABLE && cfg_fractured) ? (cond_out_m[FRACTURABLE][cond] | 
-                              cond_out_m[0][cond]) : cond_out_m[0][cond]) : 1'b0;
-      
-   end  
-   */
-
-   /* 
-   =================================================================================
    Debug Bus Register Map:
 
-   0x00: Config:  {29'h0, cfg_fractured, fsm_enable_pin_disable, fsm_enable, cfg_program}
+   0x00: Config:  {29'h0, cfg_fractured, 1'b0, fsm_enable, 1'b0}
    0x04: debug_ctrl0
    0x08: debug_ctrl1
    0x0c: Current State info
@@ -576,9 +429,7 @@ module prism
               };
    0x10: STEW LSB
    0x14: STEW MSB
-   0x20: cfg_data_out_mask[0]
    0x24: cfg_cond_out_mask[0]
-   0x28: cfg_data_out_mask[1]
    0x2c: cfg_cond_out_mask[1]
    0x30: debug_output_bits;
    0x34: decision_tree_data
@@ -590,13 +441,7 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         integer f;
-         integer cond;
-
          cfg_fractured <= 1'b0;
-         cfg_program <= 1'b0;
-         fsm_enable_int <= 1'b0;
-         fsm_enable_pin_disable <= 1'b0;
          debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
 /*
          debug_ctrl1 <= {W_DBG_CTRL{1'b0}};
@@ -606,52 +451,9 @@ module prism
          debug_dout_new_p2 <= 1'b0;
          debug_dout_new_p3 <= 1'b0;
          */
-
-         /*
-         for (f = 0; f <= FRACTURABLE; f++)
-         begin
-            cfg_cond_out_mask[f] <= 'h0;
-
-            for (cond = 0; cond < COND_OUT; cond++)
-               cfg_cond_out_mask[f][cond] <= 'h0;
-         end
-         */
       end
       else
       begin
-         integer f;
-
-         // Test for write to Fracture Control registers
-         if (FRACTURABLE && debug_wr && debug_addr == 6'h0)
-         begin
-            // Test for write to top-level control reg
-            cfg_fractured <= debug_wdata[3];
-         end
-
-         if (FRACTURABLE && debug_wr &&
-               debug_addr[W_ADDR-1:4] == 'h2)
-         begin
-            // Test for write to output masks 
-            for (f = 0; f <= FRACTURABLE; f++)
-            begin
-               // Test for general output mask write
-               if (debug_addr[3:0] == 4'(f*8))
-                  cfg_data_out_mask[f] <= debug_wdata[OUTPUTS-1:0];
-
-               // Test for conditional output mask write
-//               if (debug_addr[3:0] == 4'(4 + f*8))
-//                  cfg_cond_out_mask[f] <= debug_wdata[COND_OUT-1:0];
-            end
-         end
-
-         // Test for write to fsm_enable override bits
-         if (debug_wr && debug_addr == 6'h0)
-         begin
-            cfg_program    <= debug_wdata[0];
-            fsm_enable_int <= debug_wdata[1];
-            fsm_enable_pin_disable <= debug_wdata[2];
-         end
-
          // Test for write to debug output register
          if (INCLUDE_DEBUG && debug_wr && (debug_addr[W_ADDR-1:4] == 2'h0))
          begin
@@ -708,51 +510,19 @@ module prism
       // Detect debug read
       case (debug_addr[W_ADDR-1:4])
       4'h0: begin
-               if (FRACTURABLE)
-                  case (debug_addr[3:0])
-                     4'h0:    debug_rdata_prism = {28'h0, cfg_fractured, fsm_enable_pin_disable, fsm_enable_comb, cfg_program};
-                     4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
-//                     4'h8:    debug_rdata_prism = debug_ctrl1;
-                     4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
-                                 debug_break_active[FRACTURABLE], debug_halt[FRACTURABLE], next_si[FRACTURABLE], curr_si[FRACTURABLE],
-                                 debug_break_active[0],           debug_halt[0],           next_si[0],           curr_si[0]};
-                     default: debug_rdata_prism = 32'h0;
-                  endcase
-               else
-                  case (debug_addr[3:0])
-                     4'h0:    debug_rdata_prism = {29'h0, fsm_enable_pin_disable, fsm_enable_comb, 1'b0};
-                     4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
-//                     4'h8:    debug_rdata_prism = debug_ctrl1;
-                     4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
-                                 2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
-                                 debug_break_active[0],           debug_halt[0],           next_si[0],           curr_si[0]};
-                     default: debug_rdata_prism = 32'h0; 
-                  endcase
+               case (debug_addr[3:0])
+                  4'h0:    debug_rdata_prism = {29'h0, 1'b0, fsm_enable, 1'b0};
+                  4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
+                  4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
+                              2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
+                              debug_break_active[0],           debug_halt,              next_si,              curr_si};
+                  default: debug_rdata_prism = 32'h0; 
+               endcase
            end
       4'h1:   debug_rdata_prism = debug_rdata_ram;
 
-      /*
-      4'h2:   begin
-               if (FRACTURABLE)
-                  case (debug_addr[3:0])
-                  4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-//                  4'h4:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[FRACTURABLE]};
-//                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
-//                  4'hc:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[FRACTURABLE]};
-                  default: debug_rdata_prism = 32'h0; 
-                  endcase
-               else
-                  case (debug_addr[3:0])
-//                  4'h0:  debug_rdata_prism = {{(32-OUTPUTS){1'b0}},cfg_data_out_mask[0]};
-//                  4'h8:  debug_rdata_prism = {{(32-COND_OUT){1'b0}},cfg_cond_out_mask[0]};
-                  default: debug_rdata_prism = 32'h0; 
-                  endcase
-               end
-   */
-
       4'h3:   begin
                   case (debug_addr[3:0])
-//                  4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
                   4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
@@ -764,19 +534,17 @@ module prism
    end
 
    localparam LUT_INOUT_SIZE = 1 + LUT_SIZE;
-   localparam FRACTURE_DECISION_SIZE = (DUAL_COMPARE + 1)*LUT_INOUT_SIZE ;
 
    always @*
    begin
-      integer f, cmp;
+      integer cmp;
 
       // Default to zero
       decision_tree_data = 32'h0;
 
       // Add decision tree data
-      for (f = 0; f <= FRACTURABLE; f++)
-         for (cmp = 0; cmp <= DUAL_COMPARE; cmp++)
-            decision_tree_data[f*FRACTURE_DECISION_SIZE + (cmp+1)*LUT_INOUT_SIZE-1 -: LUT_INOUT_SIZE] = {compare_match[f][cmp], lut_inputs[f][cmp]};
+      for (cmp = 0; cmp <= DUAL_COMPARE; cmp++)
+         decision_tree_data[(cmp+1)*LUT_INOUT_SIZE-1 -: LUT_INOUT_SIZE] = {compare_match[cmp], lut_inputs[cmp]};
    end
 
    // Generate Periph read-back for in_data
@@ -798,18 +566,18 @@ module prism
    */
 
 `ifdef DEBUG_PRISM_TRANSITIONS
-   always @(curr_si[0] or out_data)
+   always @(curr_si or out_data)
       $display("SI=%02x   OutData=%06X   Jump0 Out=%06X   JumpTo 0=%3d  LUT_in=%X  CMP=%d", 
-            curr_si[0], out_data, jump_outputs[0][0], jump_to[0][0], lut_inputs[0][0], compare_match[0][0]);
+            curr_si, out_data, jump_outputs[0], jump_to[0], lut_inputs[0], compare_match[0]);
 
    if (DUAL_COMPARE)
    begin
-      always @(compare_match[0][1])
-         $display("CompareMatch 1 = %d\n", compare_match[0][1]);
-      always @(jump_outputs[0][1])
-         $display("Jump1 Out=%x\n", jump_outputs[0][1]);
-      always @(jump_to[0][1])
-         $display("JumpTo 1 = %d\n", jump_to[0][1]);
+      always @(compare_match[1])
+         $display("CompareMatch 1 = %d\n", compare_match[1]);
+      always @(jump_outputs[1])
+         $display("Jump1 Out=%x\n", jump_outputs[1]);
+      always @(jump_to[1])
+         $display("JumpTo 1 = %d\n", jump_to[1]);
    end
 `endif
 
@@ -819,26 +587,14 @@ module prism
    =================================================================================
    */
    // Control for fracture unit 0
-   assign debug_halt_req[0] = debug_ctrl0[0];
-   assign debug_step_si[0]  = debug_ctrl0[1];
-   assign debug_bp_en0[0]   = debug_ctrl0[2];
-   assign debug_bp_en1[0]   = debug_ctrl0[3];
-   assign debug_bp_si0[0]   = debug_ctrl0[SI_BITS  +4-1 -: SI_BITS];
-   assign debug_bp_si1[0]   = debug_ctrl0[SI_BITS*2+4-1 -: SI_BITS];
-   assign debug_new_si[0]   = debug_ctrl0[SI_BITS*2+4];
-   assign debug_new_siv[0]  = debug_ctrl0[SI_BITS*3+5-1 -: SI_BITS];
-
-   // Control for fracture unit 1
-/*
-   assign debug_halt_req[1] = debug_ctrl1[0];
-   assign debug_step_si[1]  = debug_ctrl1[1];
-   assign debug_bp_en0[1]   = debug_ctrl1[2];
-   assign debug_bp_en1[1]   = debug_ctrl1[3];
-   assign debug_bp_si0[1]   = debug_ctrl1[SI_BITS  +4-1 -: SI_BITS];
-   assign debug_bp_si1[1]   = debug_ctrl1[SI_BITS*2+4-1 -: SI_BITS];
-   assign debug_new_si[1]   = debug_ctrl1[SI_BITS*2+4];
-   assign debug_new_siv[1]  = debug_ctrl1[SI_BITS*3+5-1 -: SI_BITS];
-*/
+   assign debug_halt_req = debug_ctrl0[0];
+   assign debug_step_si  = debug_ctrl0[1];
+   assign debug_bp_en0   = debug_ctrl0[2];
+   assign debug_bp_en1   = debug_ctrl0[3];
+   assign debug_bp_si0   = debug_ctrl0[SI_BITS  +4-1 -: SI_BITS];
+   assign debug_bp_si1   = debug_ctrl0[SI_BITS*2+4-1 -: SI_BITS];
+   assign debug_new_si   = debug_ctrl0[SI_BITS*2+4];
+   assign debug_new_siv  = debug_ctrl0[SI_BITS*3+5-1 -: SI_BITS];
 
    /* 
    =================================================================================
@@ -849,96 +605,88 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         integer f;
          debug_halt <= 2'h0;
          debug_step_pending <= 2'h0;
          debug_resume_pending <= 2'h0;
          debug_halt_req_p1 <= 2'h0;
          debug_step_si_last <= 2'h0;
 
-         for (f = 0; f <= 1; f++)
-         begin
-            debug_si[f] <={SI_BITS{1'b0}};
-            debug_break_active[f] <= 2'h0;
-         end
+         debug_si <={SI_BITS{1'b0}};
+         debug_break_active <= 2'h0;
       end
       else
       begin
-         integer f;
-         for (f = 0; f <= 1; f++)
+         // Create rising edge detector for debug_step_si
+         debug_step_si_last <= debug_step_si;
+
+         // New SI load from debug interface
+         debug_new_si_p1 <= debug_new_si;
+         debug_new_si_p2 <= debug_new_si_p1;
+         debug_new_si_p3 <= debug_new_si_p2;
+         if (debug_new_si_p2 && !debug_new_si_p3)
+         begin  
+            debug_si <= debug_new_siv;
+         end
+
+         // Test for single-step request
+         else if (debug_halt && debug_step_si && !debug_step_si_last && !debug_step_pending)
          begin
-            // Create rising edge detector for debug_step_si
-            debug_step_si_last[f] <= debug_step_si[f];
+            // Disable halt and enable step_pending
+            debug_halt <= 1'b0;
+            debug_step_pending <= 1'b1;
+            debug_break_active <= 2'b0;
+         end
 
-            // New SI load from debug interface
-            debug_new_si_p1[f] <= debug_new_si[f];
-            debug_new_si_p2[f] <= debug_new_si_p1[f];
-            debug_new_si_p3[f] <= debug_new_si_p2[f];
-            if (debug_new_si_p2[f] && !debug_new_si_p3[f])
-            begin  
-               debug_si[f] <= debug_new_siv[f];
-            end
+         // Test if we need to halt the FSM
+         else if (debug_step_pending || 
+                 (debug_bp_en0 && !debug_break_active[0] && !debug_resume_pending && (debug_bp_si0 == next_si)) ||
+                 (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
+                  (debug_halt_req & !debug_halt_req_p1))
+         begin
+            // Halt the FSM
+            debug_halt <= 1'b1;
+            debug_si <= next_si;
+//            debug_dout <= out_data_fsm;
+            debug_step_pending <= 1'b0;
 
-            // Test for single-step request
-            else if (debug_halt[f] && debug_step_si[f] && !debug_step_si_last[f] && !debug_step_pending[f])
+            // If halt requested, clear debug_break_active
+            if (debug_halt_req)
+               debug_break_active <= 2'h0;
+            else
             begin
-               // Disable halt and enable step_pending
-               debug_halt[f] <= 1'b0;
-               debug_step_pending[f] <= 1'b1;
-               debug_break_active[f] <= 2'b0;
-            end
-
-            // Test if we need to halt the FSM
-            else if (debug_step_pending[f] || 
-                    (debug_bp_en0[f] && !debug_break_active[f][0] && !debug_resume_pending[f] && (debug_bp_si0[f] == next_si[f])) ||
-                    (debug_bp_en1[f] && !debug_break_active[f][1] && !debug_resume_pending[f] && (debug_bp_si1[f] == next_si[f])) ||
-                     (debug_halt_req[f] & !debug_halt_req_p1[f]))
-            begin
-               // Halt the FSM
-               debug_halt[f] <= 1'b1;
-               debug_si[f] <= next_si[f];
-//               debug_dout <= out_data_fsm;
-               debug_step_pending[f] <= 1'b0;
-
-               // If halt requested, clear debug_break_active
-               if (debug_halt_req[f])
-                  debug_break_active[f] <= 2'h0;
+               // Test if we broke because of breakpoint 0
+               if (debug_bp_en0 && !debug_break_active[0] && (debug_bp_si0 == curr_si))
+                  debug_break_active[0] <= 1'b1;
                else
-               begin
-                  // Test if we broke because of breakpoint 0
-                  if (debug_bp_en0[f] && !debug_break_active[f][0] && (debug_bp_si0[f] == curr_si[f]))
-                     debug_break_active[f][0] <= 1'b1;
-                  else
-                     debug_break_active[f][0] <= 1'b0;
+                  debug_break_active[0] <= 1'b0;
 
-                  // Test if we broke because of breakpoint 1
-                  if (debug_bp_en1[f] && !debug_break_active[f][1] && (debug_bp_si1[f] == curr_si[f]))
-                     debug_break_active[f][1] <= 1'b1;
-                  else
-                     debug_break_active[f][1] <= 1'b0;
-               end
+               // Test if we broke because of breakpoint 1
+               if (debug_bp_en1 && !debug_break_active[1] && (debug_bp_si1 == curr_si))
+                  debug_break_active[1] <= 1'b1;
+               else
+                  debug_break_active[1] <= 1'b0;
             end
+         end
 
-            // Test if we need to resume the FSM
-            else if (debug_halt[f] && !debug_halt_req[f] && !debug_break_active[f][0] && !debug_break_active[f][1])
-            begin
-               debug_halt[f] <= 1'b0;
-               debug_step_pending[f] <= 1'b0;
-               debug_break_active[f] <= 2'b0;
-            end
+         // Test if we need to resume the FSM
+         else if (debug_halt && !debug_halt_req && !debug_break_active[0] && !debug_break_active[1])
+         begin
+            debug_halt <= 1'b0;
+            debug_step_pending <= 1'b0;
+            debug_break_active <= 2'b0;
+         end
 
-            // Test for new debug_dout load
-//            if (debug_dout_new)
-//               debug_dout <= debug_dout_new_val;
+         // Test for new debug_dout load
+//         if (debug_dout_new)
+//            debug_dout <= debug_dout_new_val;
 
-            // Test for resume from halt request
-            debug_halt_req_p1[f] <= debug_halt_req[f];
-            debug_resume_pending[f] <= debug_halt_req_p1[f] & !debug_halt_req[f];
-            if (debug_halt_req_p1[f] & !debug_halt_req[f])
-            begin
-               debug_halt[f] <= 1'b0;
-               debug_break_active[f] <= 2'b0;
-            end
+         // Test for resume from halt request
+         debug_halt_req_p1 <= debug_halt_req;
+         debug_resume_pending <= debug_halt_req_p1 & !debug_halt_req;
+         if (debug_halt_req_p1 & !debug_halt_req)
+         begin
+            debug_halt <= 1'b0;
+            debug_break_active <= 2'b0;
          end
       end
    end
