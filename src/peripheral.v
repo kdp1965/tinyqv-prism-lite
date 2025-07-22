@@ -42,13 +42,14 @@ module tqvp_prism (
     reg   [6:0] extra_in;
     wire        prism_wr;
     wire [15:0] prism_in_data;
-    wire [10:0] prism_out_data;
+    wire [11:0] prism_out_data;
+    reg  [11:0] prism_out_r;
     wire [31:0] prism_read_data;
     reg  [27:0] count1_preload;
     reg  [27:0] count1;
     reg   [3:0] count2;
     reg   [3:0] count2_preload;
-//    wire        prism_cond_out;
+    reg   [6:0] latched_out;
     wire        prism_halt;
 
     // Instantiate the prism controller
@@ -66,7 +67,6 @@ module tqvp_prism (
         .fsm_enable         ( prism_enable      ),
         .in_data            ( prism_in_data     ),
         .out_data           ( prism_out_data    ),
-//        .cond_out           ( prism_cond_out    ),
                             
         .debug_addr         ( address           ),
         .debug_wr           ( prism_wr          ),
@@ -78,7 +78,13 @@ module tqvp_prism (
     assign prism_wr = data_write_n == 2'b10;
 
     // The We don't use uo_out0 so it can be used for comms with RISC-V
-    assign uo_out = {prism_out_data[6:0], 1'b0};
+    genvar i;
+    generate
+    for (i = 0; i < 7; i = i + 1)
+    begin : GEN_OUT
+        assign uo_out[i+1] = latched_out[i] ? prism_out_r[i] : prism_out_data[i];
+    end
+    endgenerate
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0] = ui_in[6:0];
@@ -87,7 +93,7 @@ module tqvp_prism (
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
     // All other addresses read 0.
-    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, prism_read_data[28:0]} :
+    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 22'h0, latched_out} :
                       address == 6'h28 ? {count2, count1} :
                       prism_read_data;
 
@@ -100,13 +106,14 @@ module tqvp_prism (
     begin
         if (!rst_n)
         begin
-            prism_interrupt <= 0;
-            prism_halt_r    <= 0;
-            extra_in        <= '0;
-            count1_preload  <= '0;
-            count2_preload  <= '0;
-            count1          <= '0;
-            count2          <= '0;
+            prism_interrupt <= 1'b0;
+            prism_halt_r    <= 1'b0;
+            extra_in        <= 7'b0;
+            count1_preload  <= 28'b0;
+            count2_preload  <= 4'b0;
+            count1          <= 28'b0;
+            count2          <= 4'b0;
+            prism_out_r     <= 7'b0;
         end
         else
         begin
@@ -124,6 +131,7 @@ module tqvp_prism (
                 // FSM Enable and reset bits
                 prism_reset  <= data_in[30];
                 prism_enable <= data_in[29];
+                latched_out  <= data_in[6:0];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
                 extra_in <= data_in[6:0];
@@ -154,6 +162,9 @@ module tqvp_prism (
                 if (prism_enable && !prism_halt && prism_out_data[10])
                     count2 <= count2_preload; 
             end
+
+            if (!prism_halt && prism_out_data[11])
+                prism_out_r <= prism_out_data[6:0];
         end
     end
 

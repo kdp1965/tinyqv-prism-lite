@@ -84,7 +84,7 @@ module prism
  #(
    parameter  DEPTH          = 10,                 // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
-   parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
+   parameter  OUTPUTS        = 12,                 // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
@@ -468,7 +468,6 @@ module prism
       case (debug_addr[W_ADDR-1:4])
       4'h0: begin
                case (debug_addr[3:0])
-                  4'h0:    debug_rdata_prism = {29'h0, 1'b0, fsm_enable, 1'b0};
                   4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
                   4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                               2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
