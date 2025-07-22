@@ -45,8 +45,8 @@ module tqvp_prism (
     wire [11:0] prism_out_data;
     reg  [ 4:0] prism_out_r;
     wire [31:0] prism_read_data;
-    reg  [27:0] count1_preload;
-    reg  [27:0] count1;
+    reg  [26:0] count1_preload;
+    reg  [26:0] count1;
     reg   [3:0] count2;
     reg   [3:0] count2_preload;
     reg   [4:0] latched_out;
@@ -111,9 +111,9 @@ module tqvp_prism (
             prism_interrupt <= 1'b0;
             prism_halt_r    <= 1'b0;
             extra_in        <= 7'b0;
-            count1_preload  <= 28'b0;
+            count1_preload  <= 27'b0;
             count2_preload  <= 4'b0;
-            count1          <= 28'b0;
+            count1          <= 27'b0;
             count2          <= 4'b0;
             prism_out_r     <= 5'b0;
             latched_out     <= 5'b0;
@@ -140,7 +140,7 @@ module tqvp_prism (
                 extra_in <= data_in[6:0];
             else if (address == 6'h28 && data_write_n == 2'b10)
             begin
-                count1_preload <= data_in[27:0];
+                count1_preload <= data_in[26:0];
                 count2_preload <= data_in[31:28];
             end
 
