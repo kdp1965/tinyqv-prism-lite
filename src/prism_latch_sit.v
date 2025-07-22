@@ -56,7 +56,7 @@ module prism_latch_sit
 
    // Read addresses and data
    input   wire [A_BITS-1:0]     raddr1,        // Read address 1
-   output  reg  [WIDTH-1:0]      rdata1         // Output for SI signal
+   output  wire [WIDTH-1:0]      rdata1         // Output for SI signal
 );
 
    /* 

@@ -148,7 +148,7 @@ module prism
 
    // Signal declarations
    reg   [SI_BITS-1:0]        curr_si;         // Current State Index value
-   reg   [SI_BITS-1:0]        next_si;         // Next State Index value
+   wire  [SI_BITS-1:0]        next_si;         // Next State Index value
    reg   [SI_BITS-1:0]        loop_si;         // Loop State Index value
    reg                        loop_valid;      // Indiactes if loop_si value is valid
    reg   [SI_BITS-1:0]        debug_si;        // Current State Index value
@@ -158,7 +158,7 @@ module prism
 
    // Signals to create parallel input muxes
    wire  [W_PAR_IN-1:0]       input_mux_sel [ STATE_INPUTS-1:0 ];
-   reg                        input_mux_out_c [ STATE_INPUTS-1:0 ];
+   wire                       input_mux_out_c [ STATE_INPUTS-1:0 ];
    wire                       input_mux_out   [ STATE_INPUTS-1:0 ];
 
    // RAM interface signals for output values
@@ -187,7 +187,7 @@ module prism
 
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
-   reg  [31:0]                debug_in_data;      // Peripheral data for in_data readback
+//   reg  [31:0]                debug_in_data;      // Peripheral data for in_data readback
 
    // Debug control register
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
@@ -405,7 +405,7 @@ module prism
    // If fractured, mask output bits based on config settings
    assign out_data_m = out_data_c;
 
-   assign out_data_fsm = fsm_enable ? out_data_m[0] : {OUTPUTS{1'b0}};
+   assign out_data_fsm = fsm_enable ? out_data_m : {OUTPUTS{1'b0}};
    assign out_data = INCLUDE_DEBUG & debug_halt ? debug_dout : out_data_fsm;
    //assign out_data = out_data_fsm;
 
@@ -502,6 +502,7 @@ module prism
    end
 
    // Generate Periph read-back for in_data
+   /*
    generate
       always @*
       begin
@@ -512,6 +513,7 @@ module prism
          debug_in_data[INPUTS-1:0] = in_data;
       end
    endgenerate
+   */
 
    /* 
    =================================================================================
