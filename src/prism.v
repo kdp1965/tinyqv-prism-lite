@@ -184,7 +184,6 @@ module prism
    wire  [OUTPUTS-1:0]        out_data_fsm;        // FSM outputs
    
    // Memory control signals
-   wire  [RAM_WIDTH-1:0]      ram_dout_c;
    wire  [RAM_WIDTH-1:0]      ram_dout;
    wire  [RA_BITS-1:0]        ram_raddr1;
    wire  [RAM_WIDTH-1:0]      stew;           // State Execution Word
@@ -314,15 +313,13 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         curr_si[0] <= 'h0;
-         curr_si[1] <= 'h0;
+         curr_si <= 'h0;
       end
       else
       begin
          if (fsm_enable)
          begin
-            curr_si[0] <= next_si[0];
-            curr_si[1] <= next_si[1];
+            curr_si <= next_si;
          end
       end
    end
