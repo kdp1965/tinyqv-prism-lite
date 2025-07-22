@@ -82,7 +82,7 @@
 */
 module prism
  #(
-   parameter  DEPTH          = 8,                  // Total number of available states
+   parameter  DEPTH          = 12,                 // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
    parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
@@ -563,11 +563,11 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         debug_halt <= 2'h0;
-         debug_step_pending <= 2'h0;
-         debug_resume_pending <= 2'h0;
-         debug_halt_req_p1 <= 2'h0;
-         debug_step_si_last <= 2'h0;
+         debug_halt <= 1'b0;
+         debug_step_pending <= 1'h0;
+         debug_resume_pending <= 1'h0;
+         debug_halt_req_p1 <= 1'h0;
+         debug_step_si_last <= 1'h0;
 
          debug_si <={SI_BITS{1'b0}};
          debug_break_active <= 2'h0;

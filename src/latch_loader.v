@@ -34,8 +34,8 @@ module latch_loader #(
     begin
         if (!rst_n) begin
             state    <= IDLE;
-            index    <= '0;
-            latch_en <= '0;
+            index    <= IDX_BITS'b0;
+            latch_en <= DEPTH'b0;
         end else begin
             state    <= next_state;
             latch_en <= next_latch_en;
@@ -60,7 +60,7 @@ module latch_loader #(
     // Latch enable logic
     always @*
     begin
-        next_latch_en = '0;
+        next_latch_en = DEPTH'b0;
         if (state == SHIFT)
             next_latch_en[index] = 1'b1;
     end
@@ -71,9 +71,9 @@ module latch_loader #(
             config_data <= '0;
         end else if (write_req) 
         begin 
-            if (address == 6'h0)
+            if (address == 3'h0)
                config_data[31:0] <= data_in;
-            if (address == 6'h4)
+            if (address == 3'h4)
                config_data[WIDTH-1:32] <= data_in[WIDTH-32-1:0];
         end
     end
