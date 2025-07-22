@@ -42,7 +42,7 @@ module tqvp_prism (
     reg   [6:0] extra_in;
     wire        prism_wr;
     wire [15:0] prism_in_data;
-    wire [11:0] prism_out_data;
+    wire [10:0] prism_out_data;
     wire [31:0] prism_read_data;
     reg  [26:0] count1_preload;
     reg  [26:0] count1;
@@ -114,7 +114,7 @@ module tqvp_prism (
             // Detect rising edge of HALT
             prism_halt_r <= prism_halt;
             
-            if ((prism_halt && !prism_halt_r) | prism_out_data[11]) begin
+            if ((prism_halt && !prism_halt_r) | (prism_out_data[10] & prism_out_data[9])) begin
                 prism_interrupt <= 1;
             end else if (address == 6'h0 && data_write_n == 2'b10)
             begin
