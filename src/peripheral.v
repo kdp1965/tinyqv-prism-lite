@@ -114,7 +114,7 @@ module tqvp_prism (
             // Detect rising edge of HALT
             prism_halt_r <= prism_halt;
             
-            if ((prism_halt && !prism_halt_r) | prism_out[11]) begin
+            if ((prism_halt && !prism_halt_r) | prism_out_data[11]) begin
                 prism_interrupt <= 1;
             end else if (address == 6'h0 && data_write_n == 2'b10)
             begin
