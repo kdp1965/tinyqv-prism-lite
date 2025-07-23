@@ -21,15 +21,8 @@ module spi_reg #(
     output logic reg_addr_v,
     output logic reg_data_o_dv,
     output logic reg_rw,
-    output logic [1:0] txn_width,
-    input  logic [7:0] status
+    output logic [1:0] txn_width
 );
-
-  // Map to outputs
-  assign reg_addr = addr;
-  assign reg_data_o = data;
-  assign reg_data_o_dv = dv;
-  assign spi_miso = tx_buffer[REG_W-1];
 
   // Start of frame - negedge of spi_cs_n
   logic sof;
@@ -89,8 +82,6 @@ module spi_reg #(
   logic sample_addr;
   logic sample_data;
 
-  assign reg_addr_v = tx_buffer_load;
-
   // Next state logic
   always_comb begin
     // default assignments
@@ -106,7 +97,7 @@ module spi_reg #(
         end
       end
       STATE_ADDR : begin
-        if (rx_buffer_counter == REG_W) begin
+        if (buffer_counter == REG_W) begin
           sample_addr = 1'b1;
           next_state = STATE_CMD;
         end else if (eof == 1'b1) begin
@@ -123,7 +114,7 @@ module spi_reg #(
         end
       end
       STATE_RX_DATA : begin
-        if (rx_buffer_counter == REG_W) begin
+        if (buffer_counter == REG_W) begin
           sample_data = 1'b1;
           next_state = STATE_IDLE;
         end else if (eof == 1'b1) begin
@@ -131,9 +122,9 @@ module spi_reg #(
         end
       end
       STATE_TX_DATA : begin
-        if (tx_buffer_counter == 4'd0) begin
+        if (buffer_counter == '0) begin
           tx_buffer_load = 1'b1;
-        end else if (tx_buffer_counter == REG_W) begin
+        end else if (buffer_counter == REG_W) begin
           next_state = STATE_IDLE;
         end else if (eof == 1'b1) begin
           next_state = STATE_IDLE;
@@ -154,26 +145,40 @@ module spi_reg #(
       rx_buffer <= '0;
     end else begin
       if (ena == 1'b1) begin
-        if (spi_data_sample == 1'b1) begin
-          rx_buffer <= {rx_buffer[REG_W-2:0], spi_mosi};
-        end
+        case (state)
+          STATE_IDLE : begin
+            rx_buffer <= '0;
+          end
+          STATE_TX_DATA : begin
+            if (tx_buffer_load == 1'b1) begin
+              rx_buffer <= reg_data_i;
+            end else if (spi_data_change == 1'b1) begin
+              rx_buffer <= {rx_buffer[REG_W-2:0], 1'b0};
+            end
+          end
+          default : begin
+            if (spi_data_sample == 1'b1) begin
+              rx_buffer <= {rx_buffer[REG_W-2:0], spi_mosi};
+            end
+          end
+        endcase
       end
     end
   end
 
-  // RX General counter
-  logic [5:0] rx_buffer_counter;
+  // General counter
+  logic [5:0] buffer_counter;
 
-  // RX Buffer Counter
+  // Buffer Counter
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
-      rx_buffer_counter <= '0;
+      buffer_counter <= '0;
     end else begin
       if (ena == 1'b1) begin
-        if (rx_buffer_counter == REG_W) begin
-          rx_buffer_counter <= '0;
+        if (buffer_counter == REG_W) begin
+          buffer_counter <= '0;
         end else if (spi_data_sample == 1'b1) begin
-          rx_buffer_counter <= rx_buffer_counter + 1'b1;
+          buffer_counter <= buffer_counter + 1'b1;
         end
       end
     end
@@ -199,63 +204,35 @@ module spi_reg #(
     end
   end
 
-  // Data register and data valid strobe
-  logic [REG_W-1:0] data;
+  // Address output
+  assign reg_addr = addr;
+  assign reg_addr_v = tx_buffer_load;
+
+  // Data valid strobe
   logic dv;
 
-  assign data = rx_buffer;
-    // Data and DataValid (dv) Registers
+  // RX buffer can be directly assigned to the data output.  
+  // Previously this re-sampled but that cost 32 flops.
+  // DV is only indicated at the end of the SPI transaction and rx_buffer will be stable, 
+  // so there's no need for the extra 32-flop buffer.
+  assign reg_data_o = rx_buffer;
+  assign reg_data_o_dv = dv;
+
+  // DataValid (dv) Registers
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
-//      data <= '0;
       dv <= '0;
     end else begin
       if (ena == 1'b1) begin
         dv <= '0;
         if (sample_data == 1'b1) begin
-//          data <= rx_buffer;
           dv <= (1'b1 & reg_rw);
         end
       end
     end
   end
 
-  // TX General counter
-  logic [5:0] tx_buffer_counter;
-    
-  // TX Buffer counter
-  always_ff @(negedge(rstb) or posedge(clk)) begin
-    if (!rstb) begin
-      tx_buffer_counter <= '0;
-    end else begin
-      if (ena == 1'b1) begin
-        if (tx_buffer_counter == REG_W) begin
-          tx_buffer_counter <= '0;
-        end else if (spi_data_sample == 1'b1) begin
-          tx_buffer_counter <= tx_buffer_counter + 1'b1;
-        end
-      end
-    end
-  end 
-
-  // TX Buffer
-  logic [REG_W-1:0] tx_buffer;
-
-  // TX Buffer
-  always_ff @(negedge(rstb) or posedge(clk)) begin
-    if (!rstb) begin
-      tx_buffer <= '0;
-    end else begin
-      if (ena == 1'b1) begin
-        if (sof == 1'b1) begin
-          tx_buffer <= status;
-        end else if (tx_buffer_load == 1'b1) begin
-          tx_buffer <= reg_data_i;
-        end else if (spi_data_change == 1'b1) begin
-          tx_buffer <= {tx_buffer[REG_W-2:0], 1'b0};
-        end
-      end
-    end
-  end
+  // MISO output
+  assign spi_miso = state == STATE_TX_DATA ? rx_buffer[REG_W-1] : 1'b0;
 
 endmodule
