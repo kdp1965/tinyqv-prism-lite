@@ -7,10 +7,6 @@
 
 /** TinyQV peripheral test using SPI */
 module tt_um_tqv_peripheral_harness (
-`ifdef USE_POWER_PINS
-    input  wire VGND,
-    input  wire VPWR,
-`endif
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -43,10 +39,6 @@ module tt_um_tqv_peripheral_harness (
   // The peripheral under test.
   // **** Change the module name from tqvp_example to match your peripheral. ****
   tqvp_prism user_peripheral(
-`ifdef USE_POWER_PINS
-    .VGND(VGND),
-    .VPWR(VPWR),
-`endif
     .clk            ( clk            ),
     .rst_n          ( rst_reg_n      ),
     .ui_in          ( ui_in_sync     ),
