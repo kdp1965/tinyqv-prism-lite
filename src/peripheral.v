@@ -104,6 +104,8 @@ module tqvp_prism (
     begin
         if (!rst_n)
         begin
+            prism_reset     <= 1'b0;
+            prism_enable    <= 1'b0;
             prism_interrupt <= 1'b0;
             prism_halt_r    <= 1'b0;
             extra_in        <= 3'b0;
