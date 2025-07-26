@@ -91,7 +91,7 @@ module tqvp_prism (
     // Address 4 reads ui_in
     // All other addresses read 0.
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 25'h0, latched_ctrl} :
-                      address == 6'h18 ? {24'h0, latched_out, 1'b0, extra_in},
+                      address == 6'h18 ? {24'h0, latched_out, 1'b0, extra_in} :
                       address == 6'h28 ? {count2, 1'b0, count1} :
                       prism_read_data;
 
