@@ -48,6 +48,7 @@ module tqvp_prism (
     reg  [26:0] count1;
     reg   [3:0] count2;
     reg   [3:0] count2_compare;
+    reg   [4:0] latched_ctrl;
     reg   [4:0] latched_out;
     wire        prism_halt;
 
@@ -77,7 +78,8 @@ module tqvp_prism (
     assign prism_wr = data_write_n == 2'b10;
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
-    assign uo_out[7:1] = prism_out_data[6:0];
+    assign uo_out[4:0] = (latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[4:0]);
+    assign uo_out[7:5] = prism_out_data[6:5];
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -87,7 +89,7 @@ module tqvp_prism (
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
     // All other addresses read 0.
-    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 22'h0, latched_out} :
+    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 22'h0, latched_ctrl} :
                       address == 6'h28 ? {count2, count1} :
                       prism_read_data;
 
@@ -107,7 +109,8 @@ module tqvp_prism (
             count2_compare  <= 4'b0;
             count1          <= 27'b0;
             count2          <= 4'b0;
-            latched_out     <= 5'b0;
+            latched_ctrl    <= 5'b0;
+            latched_out     <= 5'h0;
         end
         else
         begin
@@ -125,7 +128,7 @@ module tqvp_prism (
                 // FSM Enable and reset bits
                 prism_reset  <= data_in[30];
                 prism_enable <= data_in[29];
-                latched_out  <= data_in[4:0];
+                latched_ctrl <= data_in[4:0];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
                 extra_in <= data_in[6:0];
@@ -136,13 +139,13 @@ module tqvp_prism (
             end
 
             // Countdown to zero counter
-            if (!prism_halt && (count1 != 0) && prism_out_data[7])
+            if (!prism_halt && (count1 != 0) && prism_out_data[7] && !prism_out_data[8])
             begin
                 count1 <= count1 - 1;
             end
             else
             begin
-                if (prism_enable && !prism_halt && prism_out_data[8])
+                if (prism_enable && !prism_halt && prism_out_data[8] && !prism_out_data[7])
                     count1 <= count1_preload; 
             end
 
@@ -156,6 +159,10 @@ module tqvp_prism (
                 if (prism_enable && !prism_halt && prism_out_data[10] && !prism_out_data[9])
                     count2 <= 4'h0; 
             end
+
+            // Latch the lower 5 outputs
+            if (!prism_halt && prism_out_data[7] && prism_out_data[8])
+                latched_out <= prism_out_data[4:0];
         end
     end
 
