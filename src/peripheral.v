@@ -78,8 +78,8 @@ module tqvp_prism (
     assign prism_wr = data_write_n == 2'b10;
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
-    assign uo_out[3:0] = (latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[3:0]);
-    assign uo_out[7:4] = prism_out_data[7:4];
+    assign uo_out[4:1] = (latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[3:0]);
+    assign uo_out[7:5] = prism_out_data[7:5];
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -164,7 +164,7 @@ module tqvp_prism (
 
             // Latch the lower 5 outputs
             if (!prism_halt && prism_out_data[7] && prism_out_data[8])
-                latched_out <= prism_out_data[4:0];
+                latched_out <= prism_out_data[3:0];
         end
     end
 
