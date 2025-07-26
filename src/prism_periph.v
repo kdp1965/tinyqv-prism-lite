@@ -9,10 +9,6 @@
 // For example tqvp_yourname_spi for an SPI peripheral.
 // Then edit tt_wrapper.v line 41 and change tqvp_example to your chosen module name.
 module tqvp_prism (
-`ifdef USE_POWER_PINS
-    input  wire VGND,
-    input  wire VPWR,
-`endif
     input         clk,          // Clock - the TinyQV project clock is normally set to 64MHz.
     input         rst_n,        // Reset_n - low to reset.
 
@@ -35,22 +31,24 @@ module tqvp_prism (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
-    reg         prism_reset;
-    reg         prism_enable;
-    reg         prism_halt_r;
-    reg         prism_interrupt;
-    reg   [2:0] extra_in;
-    wire        prism_wr;
-    wire [15:0] prism_in_data;
-    wire [10:0] prism_out_data;
-    wire [31:0] prism_read_data;
-    reg  [26:0] count1_preload;
-    reg  [26:0] count1;
-    reg   [3:0] count2;
-    reg   [3:0] count2_compare;
-    reg   [3:0] latched_ctrl;
-    reg   [3:0] latched_out;
-    wire        prism_halt;
+    localparam  OUTPUTS = 12;
+
+    reg                 prism_reset;
+    reg                 prism_enable;
+    reg                 prism_halt_r;
+    reg                 prism_interrupt;
+    reg   [2:0]         extra_in;
+    wire                prism_wr;
+    wire [15:0]         prism_in_data;
+    wire [OUTPUTS-1:0]  prism_out_data;
+    wire [31:0]         prism_read_data;
+    reg  [26:0]         count1_preload;
+    reg  [26:0]         count1;
+    reg   [3:0]         count2;
+    reg   [3:0]         count2_compare;
+    reg   [3:0]         latched_ctrl;
+    reg   [3:0]         latched_out;
+    wire                prism_halt;
 
     // Instantiate the prism controller
     prism i_prism
@@ -58,11 +56,6 @@ module tqvp_prism (
         .clk                ( clk               ),
         .rst_n              ( rst_n             ),
 
-`ifdef USE_POWER_PINS
-        .VGND               ( VGND              ),
-        .VPWR               ( VPWR              ),
-`endif
-                                                
         .debug_reset        ( prism_reset       ),
         .fsm_enable         ( prism_enable      ),
         .in_data            ( prism_in_data     ),
@@ -165,7 +158,8 @@ module tqvp_prism (
             end
 
             // Latch the lower 5 outputs
-            if (!prism_halt && prism_out_data[7] && prism_out_data[8])
+            //if (!prism_halt && prism_out_data[7] && prism_out_data[8])
+            if (!prism_halt && prism_out_data[11])
                 latched_out <= prism_out_data[3:0];
         end
     end

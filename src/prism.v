@@ -84,7 +84,7 @@ module prism
  #(
    parameter  DEPTH          = 8,                  // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
-   parameter  OUTPUTS        = 11,                 // Nuber of FSM outputs
+   parameter  OUTPUTS        = 12,                 // Nuber of FSM outputs
    parameter  COND_OUT       = 0,                  // Number of conditional outputs
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
@@ -111,10 +111,6 @@ module prism
    parameter  W_ADDR         = 6
   )
   (
-`ifdef USE_POWER_PINS
-    input             VPWR,
-    input             VGND,
-`endif
    // Timing inputs
    input   wire                  clk,              // System clock 
    input   wire                  rst_n,            // TRUE when receiving Bit 0
@@ -226,12 +222,6 @@ module prism
     )
    prism_latch_sit_i
    (
-    /*
-`ifdef USE_POWER_PINS
-      .VPWR(VPWR),
-      .VGND(VGND),
-`endif
-*/
       .clk                   ( clk              ),
       .rst_n                 ( rst_n            ),
                                                         

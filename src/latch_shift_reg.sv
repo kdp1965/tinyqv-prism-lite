@@ -6,12 +6,6 @@ module latch_shift_reg
     input  wire                     rst_n,
     input  wire [WIDTH-1:0]         data_in,
     input  wire [DEPTH-1:0]         latch_en,
-    /*
-`ifdef USE_POWER_PINS
-    input  wire VGND,
-    input  wire VPWR,
-`endif
-*/
     output wire [WIDTH*DEPTH-1:0]   data_out
 );
 
@@ -45,14 +39,6 @@ module latch_shift_reg
             (
                 .D((i == 0) ? data_in[b] : latch_regs[i-1][b]),
                 .GATE(latch_en[i] | !rst_n),
-                /*
-`ifdef USE_POWER_PINS
-                .VGND(VGND),
-                .VNB(VGND),
-                .VPB(VPWR),
-                .VPWR(VPWR),
-`endif
-*/
                 .Q(latch_regs[i][b])
             );
         end
