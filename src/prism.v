@@ -226,10 +226,12 @@ module prism
     )
    prism_latch_sit_i
    (
+    /*
 `ifdef USE_POWER_PINS
       .VPWR(VPWR),
       .VGND(VGND),
 `endif
+*/
       .clk                   ( clk              ),
       .rst_n                 ( rst_n            ),
                                                         

@@ -38,10 +38,12 @@ module prism_latch_sit
                             DEPTH > 2  ? 2 : 1
 )
 (
+ /*
 `ifdef USE_POWER_PINS
    input                         VPWR,
    input                         VGND,
 `endif
+*/
 
    input  wire                   clk,
    input  wire                   rst_n,
@@ -99,10 +101,12 @@ module prism_latch_sit
    )
    i_prism_latch_sit
    (
+    /*
 `ifdef USE_POWER_PINS
        .VGND(VGND),
        .VPWR(VPWR),
 `endif
+*/
         .rst_n        ( rst_n            ),
         .data_in      ( config_data     ),
         .latch_en     ( config_latch_en ),

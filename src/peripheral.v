@@ -47,7 +47,7 @@ module tqvp_prism (
     reg  [26:0] count1_preload;
     reg  [26:0] count1;
     reg   [3:0] count2;
-    reg   [3:0] count2_preload;
+    reg   [3:0] count2_compare;
     reg   [4:0] latched_out;
     wire        prism_halt;
 
@@ -76,7 +76,7 @@ module tqvp_prism (
 
     assign prism_wr = data_write_n == 2'b10;
 
-    // The We don't use uo_out0 so it can be used for comms with RISC-V
+    // We don't use uo_out0 so it can be used for comms with RISC-V
     assign uo_out[7:1] = prism_out_data[6:0];
     assign uo_out[0] = 1'b0;
     
@@ -104,7 +104,7 @@ module tqvp_prism (
             prism_halt_r    <= 1'b0;
             extra_in        <= 7'b0;
             count1_preload  <= 27'b0;
-            count2_preload  <= 4'b0;
+            count2_compare  <= 4'b0;
             count1          <= 27'b0;
             count2          <= 4'b0;
             latched_out     <= 5'b0;
@@ -132,7 +132,7 @@ module tqvp_prism (
             else if (address == 6'h28 && data_write_n == 2'b10)
             begin
                 count1_preload <= data_in[26:0];
-                count2_preload <= data_in[31:28];
+                count2_compare <= data_in[31:28];
             end
 
             // Countdown to zero counter
@@ -146,21 +146,21 @@ module tqvp_prism (
                     count1 <= count1_preload; 
             end
 
-            // 4-bit count down
-            if (!prism_halt && (count2 != 0) && prism_out_data[9])
+            // 4-bit counter
+            if (!prism_halt && prism_out_data[9] && !prism_out_data[10])
             begin
-                count2 <= count2 - 1;
+                count2 <= count2 + 1;
             end
             else
             begin
-                if (prism_enable && !prism_halt && prism_out_data[10])
-                    count2 <= count2_preload; 
+                if (prism_enable && !prism_halt && prism_out_data[10] && !prism_out_data[9])
+                    count2 <= 4'h0; 
             end
         end
     end
 
     assign prism_in_data[14] = count1 == 0;
-    assign prism_in_data[15] = count2 == 0;
+    assign prism_in_data[15] = count2 == count2_compare;
 
     assign user_interrupt = prism_interrupt;
 
