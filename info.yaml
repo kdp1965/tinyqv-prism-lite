@@ -17,7 +17,7 @@ project:
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
-    - "peripheral.v"
+    - "prism_periph.v"
     - "latch_shift_reg.sv"
     - "latch_loader.v"
     - "prism.v"
