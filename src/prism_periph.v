@@ -51,6 +51,7 @@ module tqvp_prism (
     reg   [7:0]         comm_data;
     reg   [1:0]         comm_in_sel;
     reg   [2:0]         cond_out_sel;
+    reg                 shift_dir;
     wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                comm_in;
@@ -98,7 +99,7 @@ module tqvp_prism (
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
-    assign prism_in_data[7]     = comm_data[7];
+    assign prism_in_data[7]     = shift_dir ? comm_data[0] : comm_data[7];
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[15:12] = latched_out ^ prism_out_data[3:0];
 
@@ -106,7 +107,7 @@ module tqvp_prism (
     // Address 4 reads ui_in
     // All other addresses read 0.
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
-                                          14'h0, cond_out_sel, 2'b0, comm_in_sel, latched_out, latched_ctrl} :
+                                          12'h0, shift_dir, 1'b0, cond_out_sel, 2'b0, comm_in_sel, latched_out, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
                       address == 6'h28 ? {count2, 4'b0, count1} :
                       prism_read_data;
@@ -138,6 +139,7 @@ module tqvp_prism (
             comm_data       <= 8'h0;
             comm_in_sel     <= 2'h0;
             cond_out_sel    <= 3'h0;
+            shift_dir       <= 1'b0;
         end
         else
         begin
@@ -158,6 +160,7 @@ module tqvp_prism (
                 latched_ctrl <= data_in[3:0];
                 comm_in_sel  <= data_in[9:8];
                 cond_out_sel <= data_in[14:12];
+                shift_dir    <= data_in[16];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
             begin
@@ -173,7 +176,7 @@ module tqvp_prism (
             if (address == 6'h18 && data_write_n == 2'b10)
                 comm_data <= data_in[7:0];
             else if (prism_out_data[12])
-                comm_data <= {comm_data[6:0], comm_in};
+                comm_data <= shift_dir ? {comm_in, comm_data[7:1]}: {comm_data[6:0], comm_in};
 
             // Countdown to zero counter
             if (!prism_halt && (count1 != 0) && prism_out_data[7] && !prism_out_data[8])
