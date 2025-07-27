@@ -174,7 +174,7 @@ module prism
 
    // Conditional out control signals
    wire  [COND_LUT_BITS-1:0]  cond_cfg    [ COND_OUT-1:0 ];
-   wire  [1:0]                cond_in     [ COND_OUT-1:0 ];
+   wire                       cond_in     [ COND_OUT-1:0 ];
    wire                       cond_out_c  [ COND_OUT-1:0 ];
    wire                       cond_out_m  [ COND_OUT-1:0 ];
 
@@ -414,11 +414,10 @@ module prism
    for (genvar cond = 0; cond < COND_OUT; cond++)
    begin : COND_FACTORS
       // Create OR and AND output for each conditional OUT
-      assign cond_in[cond][0] = input_mux_out[0];
-      assign cond_in[cond][1] = input_mux_out[1];
+      assign cond_in[cond] = input_mux_out[0];
 
       // Drive the conditional output based on enable and ao_sel 
-      assign cond_out_c[cond] = cond_cfg[cond][cond_in[cond][COND_LUT_SIZE-1:0]];
+      assign cond_out_c[cond] = cond_cfg[cond][cond_in[cond]];
 
       // Assign masked registers based on fractured state
       assign cond_out_m[cond] = cond_out_c[cond];
