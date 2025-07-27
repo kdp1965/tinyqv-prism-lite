@@ -89,7 +89,7 @@ module prism
    parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
-   parameter  LUT_SIZE       = 3,
+   parameter  LUT_SIZE       = 2,
    parameter  INCLUDE_DEBUG  = 1,
    parameter  SI_BITS        = DEPTH > 32 ? 6 :
                                DEPTH > 16 ? 5 :

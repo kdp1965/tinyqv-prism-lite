@@ -31,27 +31,35 @@ module tqvp_prism (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
-    localparam  OUTPUTS = 12;
+    localparam  OUTPUTS = 13;
 
     reg                 prism_reset;
     reg                 prism_enable;
     reg                 prism_halt_r;
     reg                 prism_interrupt;
-    reg   [2:0]         extra_in;
+    reg   [1:0]         extra_in;
     wire                prism_wr;
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
     wire [31:0]         prism_read_data;
-    reg  [26:0]         count1_preload;
-    reg  [26:0]         count1;
+    reg  [23:0]         count1_preload;
+    reg  [23:0]         count1;
     reg   [3:0]         count2;
     reg   [3:0]         count2_compare;
     reg   [3:0]         latched_ctrl;
     reg   [3:0]         latched_out;
+    reg   [7:0]         comm_data;
+    reg   [1:0]         comm_in_sel;
+    wire                comm_in;
+    wire  [1:0]         comm_data_bits;
     wire                prism_halt;
 
     // Instantiate the prism controller
-    prism i_prism
+    prism
+    #(
+        .OUTPUTS ( OUTPUTS )
+     )
+    i_prism
     (
         .clk                ( clk               ),
         .rst_n              ( rst_n             ),
@@ -76,20 +84,26 @@ module tqvp_prism (
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
-    assign prism_in_data[6:0] = ui_in[6:0];
-    assign prism_in_data[9:7] = extra_in;
+    assign prism_in_data[6:0]   = ui_in[6:0];
+    assign prism_in_data[7]     = comm_data[7];
+    assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[15:12] = latched_out ^ prism_out_data[3:0];
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
     // All other addresses read 0.
-    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 25'h0, latched_ctrl} :
-                      address == 6'h18 ? {24'h0, latched_out, 1'b0, extra_in} :
-                      address == 6'h28 ? {count2, 1'b0, count1} :
+    assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
+                                          19'h0, comm_in_sel, latched_out, latched_ctrl} :
+                      address == 6'h18 ? {22'h0, extra_in, comm_data} :
+                      address == 6'h28 ? {count2, 4'b0, count1} :
                       prism_read_data;
 
     // All reads complete in 1 clock
     assign data_ready = 1;
+
+    // Assign COMM data in
+    assign comm_data_bits = ui_in[3:0];
+    assign comm_in = comm_data_bits[comm_in_sel];
     
     // User interrupt is generated on rising edge of ui_in[6], and cleared by writing a 1 to the low bit of address 8.
 
@@ -101,13 +115,15 @@ module tqvp_prism (
             prism_enable    <= 1'b0;
             prism_interrupt <= 1'b0;
             prism_halt_r    <= 1'b0;
-            extra_in        <= 3'b0;
-            count1_preload  <= 27'b0;
+            extra_in        <= 2'b0;
+            count1_preload  <= 24'b0;
             count2_compare  <= 4'b0;
             count1          <= 27'b0;
             count2          <= 4'b0;
             latched_ctrl    <= 4'b0;
             latched_out     <= 4'h0;
+            comm_data       <= 8'h0;
+            comm_in_sel     <= 2'h0;
         end
         else
         begin
@@ -126,14 +142,23 @@ module tqvp_prism (
                 prism_reset  <= data_in[30];
                 prism_enable <= data_in[29];
                 latched_ctrl <= data_in[3:0];
+                comm_in_sel  <= data_in[9:8];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
-                extra_in <= data_in[2:0];
+            begin
+                extra_in  <= data_in[9:8];
+            end
             else if (address == 6'h28 && data_write_n == 2'b10)
             begin
-                count1_preload <= data_in[26:0];
+                count1_preload <= data_in[23:0];
                 count2_compare <= data_in[31:28];
             end
+
+            // Latch comm_data
+            if (address == 6'h18 && data_write_n == 2'b10)
+                comm_data <= data_in[7:0];
+            else if (prism_out_data[12])
+                comm_data <= {comm_data[6:0], comm_in};
 
             // Countdown to zero counter
             if (!prism_halt && (count1 != 0) && prism_out_data[7] && !prism_out_data[8])
