@@ -50,9 +50,11 @@ module tqvp_prism (
     reg   [3:0]         latched_out;
     reg   [7:0]         comm_data;
     reg   [1:0]         comm_in_sel;
+    reg   [2:0]         cond_out_sel;
+    wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                comm_in;
-    wire  [1:0]         comm_data_bits;
+    wire  [3:0]         comm_data_bits;
     wire                prism_halt;
 
     // Instantiate the prism controller
@@ -80,9 +82,18 @@ module tqvp_prism (
 
     assign prism_wr = data_write_n == 2'b10;
 
+    genvar i;
+    generate
+    for (i = 0; i < 7; i = i + 1)
+    begin : GEN_COND_OUT_EN
+        assign cond_out_en[i] = cond_out_sel == i;    
+    end
+    endgenerate
+
     // We don't use uo_out0 so it can be used for comms with RISC-V
-    assign uo_out[4:1] = (latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[3:0]);
-    assign uo_out[7:5] = {prism_out_data[6] | cond_out[0], prism_out_data[5:4]};
+    // Assign outputs based on conditional enable or latched enable
+    assign uo_out[4:1] = (cond_out_en[3:0] & {4{cond_out[0]}}) | (~cond_out_en[3:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[3:0])));
+    assign uo_out[7:5] = (cond_out_en[6:4] & {3{cond_out[0]}}) | (~cond_out_en[6:4] & prism_out_data[6:4]);
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -95,7 +106,7 @@ module tqvp_prism (
     // Address 4 reads ui_in
     // All other addresses read 0.
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
-                                          19'h0, comm_in_sel, latched_out, latched_ctrl} :
+                                          14'h0, cond_out_sel, 2'b0, comm_in_sel, latched_out, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
                       address == 6'h28 ? {count2, 4'b0, count1} :
                       prism_read_data;
@@ -126,6 +137,7 @@ module tqvp_prism (
             latched_out     <= 4'h0;
             comm_data       <= 8'h0;
             comm_in_sel     <= 2'h0;
+            cond_out_sel    <= 3'h0;
         end
         else
         begin
@@ -145,6 +157,7 @@ module tqvp_prism (
                 prism_enable <= data_in[29];
                 latched_ctrl <= data_in[3:0];
                 comm_in_sel  <= data_in[9:8];
+                cond_out_sel <= data_in[14:12];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
             begin
