@@ -287,6 +287,12 @@ module prism
       assign cmp_sel[cmp]       = stew[CMP_SEL_SIZE*(cmp+1)-1+ CMP_SEL_START -: CMP_SEL_SIZE];
    end
 
+   // Assign conditional output bits
+   for (genvar cond = 0; cond < COND_OUT; cond++)
+   begin : COND_ASSIGN_GEN
+      assign cond_cfg[cond]     = stew[COND_LUT_BITS*cond + COND_START +: COND_LUT_BITS]; 
+   end
+
    // Assign output bits
    assign state_outputs         = stew[OUTPUTS     + OUTPUTS_START-1 -: OUTPUTS];
 
