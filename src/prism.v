@@ -85,8 +85,8 @@ module prism
    parameter  DEPTH          = 8,                  // Total number of available states
    parameter  INPUTS         = 16,                 // Total number of Input to the module
    parameter  OUTPUTS        = 12,                 // Nuber of FSM outputs
-   parameter  COND_OUT       = 0,                  // Number of conditional outputs
-   parameter  COND_LUT_SIZE  = 2,                  // Size (inputs) for COND decision tree LUT
+   parameter  COND_OUT       = 1,                  // Number of conditional outputs
+   parameter  COND_LUT_SIZE  = 1,                  // Size (inputs) for COND decision tree LUT
    parameter  STATE_INPUTS   = 3,                  // Number of parallel state input muxes
    parameter  DUAL_COMPARE   = 0,
    parameter  LUT_SIZE       = 2,
@@ -122,6 +122,7 @@ module prism
 
    // Output data
    output  wire [OUTPUTS-1:0]    out_data,         // Bit Slip pulse back to SerDes
+   output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
 
    // ============================
    // Debug bus for programming
@@ -171,6 +172,12 @@ module prism
    // Signals for doing input compare and muxing
    wire  [DUAL_COMPARE:0]     compare_match;
 
+   // Conditional out control signals
+   wire  [COND_LUT_BITS-1:0]  cond_cfg    [ COND_OUT-1:0 ];
+   wire  [1:0]                cond_in     [ COND_OUT-1:0 ];
+   wire                       cond_out_c  [ COND_OUT-1:0 ];
+   wire                       cond_out_m  [ COND_OUT-1:0 ];
+
    // Output data masking
    wire  [OUTPUTS-1:0]        out_data_c  ;
    wire  [OUTPUTS-1:0]        out_data_m  ;
@@ -183,7 +190,6 @@ module prism
 
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
-//   reg  [31:0]                debug_in_data;      // Peripheral data for in_data readback
 
    // Debug control register
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
@@ -399,7 +405,31 @@ module prism
 
    assign out_data_fsm = fsm_enable ? out_data_m : {OUTPUTS{1'b0}};
    assign out_data = INCLUDE_DEBUG & debug_halt ? debug_dout : out_data_fsm;
-   //assign out_data = out_data_fsm;
+
+   /* 
+   =================================================================================
+   Assign the conditional outputs
+   =================================================================================
+   */
+   for (genvar cond = 0; cond < COND_OUT; cond++)
+   begin : COND_FACTORS
+      // Create OR and AND output for each conditional OUT
+      assign cond_in[cond][0] = input_mux_out[0];
+      assign cond_in[cond][1] = input_mux_out[1];
+
+      // Drive the conditional output based on enable and ao_sel 
+      assign cond_out_c[cond] = cond_cfg[cond][cond_in[cond][COND_LUT_SIZE-1:0]];
+
+      // Assign masked registers based on fractured state
+      assign cond_out_m[cond] = cond_out_c[cond];
+   end
+
+   for (genvar cond = 0; cond < COND_OUT; cond++)
+   begin : COND_OUT_GEN
+      // Assign final conditional outputs
+      assign cond_out[cond] = fsm_enable ? cond_out_m[cond] : 1'b0;
+      
+   end  
 
    /* 
    =================================================================================
