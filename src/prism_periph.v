@@ -48,7 +48,6 @@ module tqvp_prism (
     wire                prism_wr;
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
-//    wire [OUTPUTS-1:0]  debug_dout_share;
     wire [31:0]         prism_read_data;
     reg  [23:0]         count1_preload;
     reg  [23:0]         count1;
@@ -63,8 +62,6 @@ module tqvp_prism (
     reg                 shift_dir;
     reg                 shift_24;
     reg                 shift_out_mode;
-//    reg                 shift_out_sel;
-//    reg   [1:0]         shift_out_en;
     reg   [4:0]         shift_count;
     wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
@@ -89,7 +86,6 @@ module tqvp_prism (
         .in_data            ( prism_in_data     ),
         .out_data           ( prism_out_data    ),
         .cond_out           ( cond_out          ),
-//        .debug_dout_share   ( debug_dout_share  ),
                             
         .debug_addr         ( address           ),
         .debug_wr           ( prism_wr          ),
@@ -107,17 +103,11 @@ module tqvp_prism (
     begin : GEN_COND_OUT_EN
         assign cond_out_en[i] = cond_out_sel == i;    
     end
-//    for (i = 0; i < 2; i = i + 1)
-//    begin : GEN_SHIFT_OUT_EN
-//        assign shift_out_en[i] = shift_out_sel == i;    
-//    end
     endgenerate
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
     assign uo_out[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[1:0])));
-//    assign uo_out[4:3] = (cond_out_en[3:2] & {2{cond_out[0]}}) | (~cond_out_en[3:2] & ((shift_out_en & {2{shift_data}}) | (~shift_out_en & ~prism_out_data[3:2])));
-//    assign uo_out[7:5] = (cond_out_en[6:4] & {3{cond_out[0]}}) | (~cond_out_en[6:4] & prism_out_data[6:4]);
     assign uo_out[7:3] = (cond_out_en[6:2] & {5{cond_out[0]}}) | (~cond_out_en[6:2] & prism_out_data[6:4]);
     assign uo_out[0] = 1'b0;
     
@@ -129,7 +119,8 @@ module tqvp_prism (
     assign prism_in_data[14]    = shift_count == 5'h0;
     assign prism_in_data[15]    = 1'b0;
 
-    assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
+    //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
+    assign shift_data = shift_24 ? count1[23] : (shift_dir ? comm_data[0] : comm_data[7]);
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
@@ -228,7 +219,7 @@ module tqvp_prism (
 
                 // Use 24-bit counter as shift-register
                 else if (shift_24 && prism_out_data[OUT_SHIFT])
-                    count1 <= shift_dir ? {comm_in, count1[23:1]} : {count1[22:0], comm_in};
+                    count1 <= {count1[22:0], comm_in};
 
                 // Count the number of shifts
                 if (prism_out_data[OUT_SHIFT])
