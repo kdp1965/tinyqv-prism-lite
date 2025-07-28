@@ -124,6 +124,8 @@ module prism
    output  wire [OUTPUTS-1:0]    out_data,         // Bit Slip pulse back to SerDes
    output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
 
+   output  wire [OUTPUTS-1:0]    debug_dout_share,
+
    // ============================
    // Debug bus for programming
    // ============================
@@ -519,6 +521,8 @@ module prism
       default: debug_rdata_prism = 32'h0;
       endcase
    end
+
+   assign debug_dout_share = debug_dout;
 
    localparam LUT_INOUT_SIZE = 1 + LUT_SIZE;
 
