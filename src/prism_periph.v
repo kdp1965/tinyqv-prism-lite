@@ -108,7 +108,8 @@ module tqvp_prism (
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
     assign uo_out[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[1:0])));
-    assign uo_out[7:3] = (cond_out_en[6:2] & {5{cond_out[0]}}) | (~cond_out_en[6:2] & prism_out_data[6:4]);
+    assign uo_out[6:3] = (cond_out_en[5:2] & {4{cond_out[0]}}) | (~cond_out_en[5:2] & prism_out_data[5:4]);
+    assign uo_out[7]   = (cond_out_en[6]   & {1{cond_out[0]}}) | (~cond_out_en[6]   & (shift_out_mode ? shift_data : prism_out_data[6]));
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -127,7 +128,7 @@ module tqvp_prism (
     // All other addresses read 0.
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable, 5'b0,
                                           //2'h0, shift_out_mode, shift_out_sel, 2'h0, shift_24, shift_dir,
-                                          4'h0, 2'h0, shift_24, shift_dir,
+                                          3'h0, shift_out_mode, 2'h0, shift_24, shift_dir,
                                           1'b0, cond_out_sel, 2'b0, comm_in_sel,
                                           2'h0, latched_out, 2'h0, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
@@ -165,7 +166,7 @@ module tqvp_prism (
             shift_dir       <= 1'b0;
             shift_24        <= 1'b0;
             shift_count     <= 5'h0;
-            //shift_out_mode  <= 1'b0;
+            shift_out_mode  <= 1'b0;
             //shift_out_sel   <= 1'h0;
         end
         else
@@ -189,8 +190,8 @@ module tqvp_prism (
                 cond_out_sel   <= data_in[14:12];
                 shift_dir      <= data_in[16];
                 shift_24       <= data_in[17];
+                shift_out_mode <= data_in[20];
                 //shift_out_sel  <= data_in[20];
-                //shift_out_mode <= data_in[21];
             end
             else if (address == 6'h18 && data_write_n == 2'b10)
             begin

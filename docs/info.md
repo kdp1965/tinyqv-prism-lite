@@ -13,12 +13,14 @@ This is a Programmable Reconfigurable Indexed State Machine (PRISM) that execute
 state machine that is loaded via a configuration bitstream at runtime.
 
 ## Block diagram
-The following is a top level diagram of the PRISM Peripheral
+The following is a top level diagram of the PRISM Peripheral.
+
 ![](prism_periph.png)
 
 The PRISM controller itself is a programmable state machine that uses an N-bit (3 in this case)
 index register to track the current FSM state.  That index is a pointer into the State Information Table (SIT)
 to request the State Execution Word (STEW).  The following is a block diagram of the PRISM controller:
+
 ![](prism_submitted.png)
 
 ## Register map
