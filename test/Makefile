@@ -6,7 +6,7 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 PROJECT_SOURCES = prism_periph.v latch_loader.v latch_shift_reg.sv prism.v prism_latch_sit.v
-ADDITIONAL_SOURCES = tt_wrapper.v spi/*.sv
+ADDITIONAL_SOURCES = tt_wrapper.v test_harness/*.sv
 
 ifneq ($(GATES),yes)
 
@@ -15,13 +15,6 @@ SIM_BUILD				= sim_build/rtl
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(ADDITIONAL_SOURCES))
 COMPILE_ARGS    += -DSIM
-#COMPILE_ARGS    += -DGL_TEST
-#COMPILE_ARGS    += -DFUNCTIONAL
-#COMPILE_ARGS    += -DUSE_POWER_PINS
-#COMPILE_ARGS    += -DDEBUG_PRISM_STEW
-#COMPILE_ARGS    += -DUNIT_DELAY=\#1
-#VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v
-#VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
 
 else
 
@@ -30,7 +23,7 @@ SIM_BUILD				= sim_build/gl
 COMPILE_ARGS    += -DGL_TEST
 COMPILE_ARGS    += -DFUNCTIONAL
 COMPILE_ARGS    += -DUSE_POWER_PINS
-#COMPILE_ARGS    += -DSIM
+COMPILE_ARGS    += -DSIM
 COMPILE_ARGS    += -DUNIT_DELAY=\#1
 VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v
 VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v

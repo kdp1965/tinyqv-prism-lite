@@ -23,11 +23,11 @@ project:
     - "prism.v"
     - "prism_latch_sit.v"
     - "tt_wrapper.v"
-    - "spi/falling_edge_detector.sv"
-    - "spi/rising_edge_detector.sv"
-    - "spi/reclocking.sv"
-    - "spi/spi_reg.sv"
-    - "spi/synchronizer.sv"
+    - "test_harness/falling_edge_detector.sv"
+    - "test_harness/rising_edge_detector.sv"
+    - "test_harness/reclocking.sv"
+    - "test_harness/spi_reg.sv"
+    - "test_harness/synchronizer.sv"
 
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
