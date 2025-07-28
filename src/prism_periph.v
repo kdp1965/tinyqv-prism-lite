@@ -103,7 +103,7 @@ module tqvp_prism (
     assign prism_in_data[7]     = shift_dir ? comm_data[0] : comm_data[7];
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
-    assign prism_in_data[15:0]  = 2'h0;
+    assign prism_in_data[15:14] = 2'h0;
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
@@ -138,6 +138,7 @@ module tqvp_prism (
             count2          <= 4'b0;
             latched_ctrl    <= 4'b0;
             latched_out     <= 4'h0;
+            latched_in      <= 2'h0;
             comm_data       <= 8'h0;
             comm_in_sel     <= 2'h0;
             cond_out_sel    <= 3'h0;
