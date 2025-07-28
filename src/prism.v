@@ -150,8 +150,6 @@ module prism
    reg                        loop_valid;      // Indiactes if loop_si value is valid
    reg   [SI_BITS-1:0]        debug_si;        // Current State Index value
    reg                        debug_new_si_p1;     // Current State Index value
-   reg                        debug_new_si_p2;     // Current State Index value
-   reg                        debug_new_si_p3;     // Current State Index value
 
    // Signals to create parallel input muxes
    wire  [W_PAR_IN-1:0]       input_mux_sel [ STATE_INPUTS-1:0 ];
@@ -605,9 +603,7 @@ module prism
 
          // New SI load from debug interface
          debug_new_si_p1 <= debug_new_si;
-         debug_new_si_p2 <= debug_new_si_p1;
-         debug_new_si_p3 <= debug_new_si_p2;
-         if (debug_new_si_p2 && !debug_new_si_p3)
+         if (debug_new_si && !debug_new_si_p1)
          begin  
             debug_si <= debug_new_siv;
          end
