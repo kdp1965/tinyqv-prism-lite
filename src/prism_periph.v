@@ -33,6 +33,13 @@ module tqvp_prism (
 
     localparam  OUTPUTS = 13;
 
+    localparam  OUT_COUNT1_DEC      = 7;
+    localparam  OUT_COUNT1_LOAD     = 8;
+    localparam  OUT_COUNT2_INC      = 9;
+    localparam  OUT_COUNT2_CLEAR    = 10;
+    localparam  OUT_LATCH           = 11;
+    localparam  OUT_SHIFT           = 12;
+
     reg                 prism_reset;
     reg                 prism_enable;
     reg                 prism_halt_r;
@@ -41,12 +48,12 @@ module tqvp_prism (
     wire                prism_wr;
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
-    wire [OUTPUTS-1:0]  debug_dout_share;
+//    wire [OUTPUTS-1:0]  debug_dout_share;
     wire [31:0]         prism_read_data;
     reg  [23:0]         count1_preload;
     reg  [23:0]         count1;
-    reg   [3:0]         count2;
-    reg   [3:0]         count2_compare;
+    reg   [4:0]         count2;
+    reg   [4:0]         count2_compare;
     reg   [1:0]         latched_ctrl;
     reg   [1:0]         latched_out;
     reg   [1:0]         latched_in;
@@ -55,11 +62,14 @@ module tqvp_prism (
     reg   [2:0]         cond_out_sel;
     reg                 shift_dir;
     reg                 shift_24;
+    reg   [4:0]         shift_count;
     wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                comm_in;
     wire  [3:0]         comm_data_bits;
     wire                prism_halt;
+    wire                shift_data;
+    wire                prism_exec;
 
     // Instantiate the prism controller
     prism
@@ -76,7 +86,7 @@ module tqvp_prism (
         .in_data            ( prism_in_data     ),
         .out_data           ( prism_out_data    ),
         .cond_out           ( cond_out          ),
-        .debug_dout_share   ( debug_dout_share  ),
+//        .debug_dout_share   ( debug_dout_share  ),
                             
         .debug_addr         ( address           ),
         .debug_wr           ( prism_wr          ),
@@ -86,6 +96,7 @@ module tqvp_prism (
     );
 
     assign prism_wr = data_write_n == 2'b10;
+    assign prism_exec = prism_enable && !prism_halt;
 
     genvar i;
     generate
@@ -103,11 +114,13 @@ module tqvp_prism (
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
-    assign prism_in_data[7]     = shift_dir ? comm_data[0] : comm_data[7];
+    assign prism_in_data[7]     = shift_data;
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
-    assign prism_in_data[14]    = count1[23];
-    assign prism_in_data[15]    = debug_dout_share[3:0] == count2;
+    assign prism_in_data[14]    = shift_count == 5'h0;
+    assign prism_in_data[15]    = 1'b0;
+
+    assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
@@ -115,7 +128,7 @@ module tqvp_prism (
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
                                           11'h0, shift_24, shift_dir, 1'b0, cond_out_sel, 2'b0, comm_in_sel, 2'h0, latched_out, 2'h0, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
-                      address == 6'h28 ? {4'h0, count2, count1} :
+                      address == 6'h28 ? {3'h0, count2, count1} :
                       prism_read_data;
 
     // All reads complete in 1 clock
@@ -137,9 +150,9 @@ module tqvp_prism (
             prism_halt_r    <= 1'b0;
             extra_in        <= 2'b0;
             count1_preload  <= 24'b0;
-            count2_compare  <= 4'b0;
+            count2_compare  <= 5'b0;
             count1          <= 24'b0;
-            count2          <= 4'b0;
+            count2          <= 5'b0;
             latched_ctrl    <= 2'b0;
             latched_out     <= 2'h0;
             latched_in      <= 2'h0;
@@ -148,13 +161,14 @@ module tqvp_prism (
             cond_out_sel    <= 3'h0;
             shift_dir       <= 1'b0;
             shift_24        <= 1'b0;
+            shift_count     <= 5'h0;
         end
         else
         begin
             // Detect rising edge of HALT
             prism_halt_r <= prism_halt;
             
-            if ((prism_halt && !prism_halt_r) | (prism_out_data[10] & prism_out_data[9])) begin
+            if ((prism_halt && !prism_halt_r) | (prism_out_data[OUT_COUNT2_CLEAR] & prism_out_data[OUT_COUNT2_INC])) begin
                 prism_interrupt <= 1;
             end else if (address == 6'h0 && data_write_n == 2'b10)
             begin
@@ -178,37 +192,49 @@ module tqvp_prism (
             else if (address == 6'h28 && data_write_n == 2'b10)
             begin
                 count1_preload <= data_in[23:0];
-                count2_compare <= data_in[27:24];
+                count2_compare <= data_in[28:24];
             end
 
             // Latch comm_data
             if (address == 6'h18 && data_write_n == 2'b10)
                 comm_data <= data_in[7:0];
-            else if (prism_out_data[12])
+            else if (prism_exec && !shift_24 && prism_out_data[OUT_SHIFT])
                 comm_data <= shift_dir ? {comm_in, comm_data[7:1]}: {comm_data[6:0], comm_in};
 
             // Countdown to zero counter
-            if (prism_enable && !prism_halt)
+            if (prism_exec)
             begin
-                if (prism_out_data[8] && !prism_out_data[7])
+                // Logic for load / decrement of 24-bit countdown counter
+                if (prism_out_data[OUT_COUNT1_LOAD])
                     count1 <= count1_preload; 
-                else if (count1 != 0 && prism_out_data[7] && !prism_out_data[8])
+                else if (count1 != 0 && prism_out_data[OUT_COUNT1_DEC])
                     count1 <= count1 - 1;
-                else if (shift_24 && prism_out_data[12])
-                    count1 <= {count1[22:0], 1'b0};
-            end
 
-            // 4-bit counter
-            if (prism_enable && !prism_halt && prism_out_data[10] && !prism_out_data[9])
-                count2 <= 4'h0; 
-            else if (!prism_halt && prism_out_data[9] && !prism_out_data[10])
-                count2 <= count2 + 1;
+                // Use 24-bit counter as shift-register
+                else if (shift_24 && prism_out_data[OUT_SHIFT])
+                    count1 <= shift_dir ? {comm_in, count1[23:1]} : {count1[22:0], comm_in};
 
-            // Latch the lower 5 outputs
-            if (!prism_halt && prism_out_data[11])
-            begin
-                latched_out <= prism_out_data[1:0];
-                latched_in  <= ui_in[1:0];
+                // Count the number of shifts
+                if (prism_out_data[OUT_SHIFT])
+                begin
+                    if (shift_24 || (!shift_24 && shift_count != 5'h7))
+                        shift_count <= shift_count + 1;
+                    else 
+                        shift_count <= 5'h0;
+                end
+
+                // 4-bit counter
+                if (prism_out_data[OUT_COUNT2_CLEAR] && !prism_out_data[OUT_COUNT2_INC])
+                    count2 <= 4'h0; 
+                else if (prism_out_data[OUT_COUNT2_INC] && !prism_out_data[OUT_COUNT2_CLEAR])
+                    count2 <= count2 + 1;
+                
+                // Latch the lower 2 outputs
+                if (prism_out_data[OUT_LATCH])
+                begin
+                    latched_out <= prism_out_data[1:0];
+                    latched_in  <= ui_in[1:0];
+                end
             end
         end
     end
