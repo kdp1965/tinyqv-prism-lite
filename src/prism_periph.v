@@ -213,14 +213,17 @@ module tqvp_prism (
             if (prism_exec)
             begin
                 // Logic for load / decrement of 24-bit countdown counter
-                if (prism_out_data[OUT_COUNT1_LOAD])
+                if (prism_out_data[OUT_COUNT1_LOAD] & !prism_out_data[OUT_COUNT1_DEC])
                     count1 <= count1_preload; 
-                else if (count1 != 0 && prism_out_data[OUT_COUNT1_DEC])
+                else if (count1 != 0 && prism_out_data[OUT_COUNT1_DEC] & !prism_out_data[OUT_COUNT1_LOAD])
                     count1 <= count1 - 1;
 
                 // Use 24-bit counter as shift-register
                 else if (shift_24 && prism_out_data[OUT_SHIFT])
                     count1 <= {count1[22:0], comm_in};
+
+                else if (prism_out_data[OUT_COUNT1_LOAD] & prism_out_data[OUT_COUNT1_DEC])
+                    count1 <= {count1[15:0], comm_data};
 
                 // Count the number of shifts
                 if (prism_out_data[OUT_SHIFT])
