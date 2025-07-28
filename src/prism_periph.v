@@ -222,6 +222,9 @@ module tqvp_prism (
                 else if (shift_24 && prism_out_data[OUT_SHIFT])
                     count1 <= {count1[22:0], comm_in};
 
+                else if (prism_out_data[OUT_COUNT1_LOAD] & prism_out_data[OUT_COUNT1_DEC])
+                    count1[7:0] <= comm_data;
+
                 // Count the number of shifts
                 if (prism_out_data[OUT_SHIFT])
                 begin
