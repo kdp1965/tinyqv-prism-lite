@@ -46,8 +46,8 @@ module tqvp_prism (
     reg  [23:0]         count1;
     reg   [3:0]         count2;
     reg   [3:0]         count2_compare;
-    reg   [3:0]         latched_ctrl;
-    reg   [3:0]         latched_out;
+    reg   [1:0]         latched_ctrl;
+    reg   [1:0]         latched_out;
     reg   [7:0]         comm_data;
     reg   [1:0]         comm_in_sel;
     reg   [2:0]         cond_out_sel;
@@ -93,8 +93,8 @@ module tqvp_prism (
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
-    assign uo_out[4:1] = (cond_out_en[3:0] & {4{cond_out[0]}}) | (~cond_out_en[3:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[3:0])));
-    assign uo_out[7:5] = (cond_out_en[6:4] & {3{cond_out[0]}}) | (~cond_out_en[6:4] & prism_out_data[6:4]);
+    assign uo_out[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[1:0])));
+    assign uo_out[7:3] = (cond_out_en[6:2] & {5{cond_out[0]}}) | (~cond_out_en[6:2] & prism_out_data[6:2]);
     assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
@@ -107,7 +107,7 @@ module tqvp_prism (
     // Address 4 reads ui_in
     // All other addresses read 0.
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
-                                          12'h0, shift_dir, 1'b0, cond_out_sel, 2'b0, comm_in_sel, latched_out, latched_ctrl} :
+                                          12'h0, shift_dir, 1'b0, cond_out_sel, 2'b0, comm_in_sel, 2'h0, latched_out, 2'h0, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
                       address == 6'h28 ? {count2, 4'b0, count1} :
                       prism_read_data;
@@ -134,8 +134,8 @@ module tqvp_prism (
             count2_compare  <= 4'b0;
             count1          <= 27'b0;
             count2          <= 4'b0;
-            latched_ctrl    <= 4'b0;
-            latched_out     <= 4'h0;
+            latched_ctrl    <= 2'b0;
+            latched_out     <= 2'h0;
             comm_data       <= 8'h0;
             comm_in_sel     <= 2'h0;
             cond_out_sel    <= 3'h0;
@@ -157,7 +157,7 @@ module tqvp_prism (
                 // FSM Enable and reset bits
                 prism_reset  <= data_in[30];
                 prism_enable <= data_in[29];
-                latched_ctrl <= data_in[3:0];
+                latched_ctrl <= data_in[1:0];
                 comm_in_sel  <= data_in[9:8];
                 cond_out_sel <= data_in[14:12];
                 shift_dir    <= data_in[16];
@@ -202,7 +202,7 @@ module tqvp_prism (
 
             // Latch the lower 5 outputs
             if (!prism_halt && prism_out_data[11])
-                latched_out <= prism_out_data[3:0];
+                latched_out <= prism_out_data[1:0];
         end
     end
 
