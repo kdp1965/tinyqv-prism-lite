@@ -140,7 +140,7 @@ module prism
                             DEPTH >  32 ? 6 : DEPTH > 16  ? 5 : DEPTH > 8 ? 4 : 
                             DEPTH >  4 ? 3 : 2;
    localparam CMP_SEL_SIZE= 2**LUT_SIZE;
-   localparam W_DBG_CTRL  = SI_BITS*3 + 6;
+   localparam W_DBG_CTRL  = SI_BITS*2 + 4;
    localparam RAM_DEPTH   = DEPTH;
 
    // Signal declarations
@@ -149,7 +149,6 @@ module prism
    reg   [SI_BITS-1:0]        loop_si;         // Loop State Index value
    reg                        loop_valid;      // Indiactes if loop_si value is valid
    reg   [SI_BITS-1:0]        debug_si;        // Current State Index value
-   reg                        debug_new_si_p1;     // Current State Index value
 
    // Signals to create parallel input muxes
    wire  [W_PAR_IN-1:0]       input_mux_sel [ STATE_INPUTS-1:0 ];
@@ -199,7 +198,9 @@ module prism
    wire  [SI_BITS-1:0]        debug_bp_si1;
    wire                       debug_new_si;
    wire  [SI_BITS-1:0]        debug_new_siv;
+   wire                       debug_entry;
    reg   [OUTPUTS-1:0]        debug_dout;          // Outputs during debug
+
 
    // Debug control regs
    reg                        debug_halt;
@@ -461,6 +462,7 @@ module prism
       if (~rst_n | debug_reset)
       begin
          debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
+         debug_si    <= {SI_BITS{1'b0}};
       end
       else
       begin
@@ -472,8 +474,14 @@ module prism
             begin
                // Save debug register
                debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
+
+               // New SI load from debug interface
+               if (debug_new_si)
+                  debug_si <= debug_new_siv;
             end
          end
+         else if (INCLUDE_DEBUG && debug_entry)
+            debug_si <= next_si;
       end
    end
 
@@ -490,7 +498,7 @@ module prism
       case (debug_addr[W_ADDR-1:4])
       4'h0: begin
                case (debug_addr[3:0])
-                  4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_ctrl0};
+                  4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_si, 1'b0, debug_ctrl0};
                   4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
                               2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
                               debug_break_active[0],           debug_halt,              next_si,              curr_si};
@@ -574,14 +582,19 @@ module prism
    assign debug_bp_en1   = debug_ctrl0[3];
    assign debug_bp_si0   = debug_ctrl0[SI_BITS  +4-1 -: SI_BITS];
    assign debug_bp_si1   = debug_ctrl0[SI_BITS*2+4-1 -: SI_BITS];
-   assign debug_new_si   = debug_ctrl0[SI_BITS*2+4];
-   assign debug_new_siv  = debug_ctrl0[SI_BITS*3+5-1 -: SI_BITS];
+   assign debug_new_si   = debug_wdata[SI_BITS*2+4];
+   assign debug_new_siv  = debug_wdata[SI_BITS*3+5-1 -: SI_BITS];
 
    /* 
    =================================================================================
    Debugger code
    =================================================================================
    */
+   assign debug_entry = debug_step_pending || 
+                       (debug_bp_en0 && !debug_break_active[0] && !debug_resume_pending && (debug_bp_si0 == next_si)) ||
+                       (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
+                       (debug_halt_req & !debug_halt_req_p1);
+
    always @(posedge clk)
    begin
       if (~rst_n | debug_reset)
@@ -592,7 +605,6 @@ module prism
          debug_halt_req_p1 <= 1'h0;
          debug_step_si_last <= 1'h0;
 
-         debug_si <={SI_BITS{1'b0}};
          debug_break_active <= 2'h0;
          debug_dout <= {OUTPUTS{1'b0}};
       end
@@ -601,15 +613,8 @@ module prism
          // Create rising edge detector for debug_step_si
          debug_step_si_last <= debug_step_si;
 
-         // New SI load from debug interface
-         debug_new_si_p1 <= debug_new_si;
-         if (debug_new_si && !debug_new_si_p1)
-         begin  
-            debug_si <= debug_new_siv;
-         end
-
          // Test for single-step request
-         else if (debug_halt && debug_step_si && !debug_step_si_last && !debug_step_pending)
+         if (debug_halt && debug_step_si && !debug_step_si_last && !debug_step_pending)
          begin
             // Disable halt and enable step_pending
             debug_halt <= 1'b0;
@@ -618,14 +623,10 @@ module prism
          end
 
          // Test if we need to halt the FSM
-         else if (debug_step_pending || 
-                 (debug_bp_en0 && !debug_break_active[0] && !debug_resume_pending && (debug_bp_si0 == next_si)) ||
-                 (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
-                  (debug_halt_req & !debug_halt_req_p1))
+         else if (debug_entry)
          begin
             // Halt the FSM
             debug_halt <= 1'b1;
-            debug_si <= next_si;
             debug_dout <= out_data_fsm;
             debug_step_pending <= 1'b0;
 
