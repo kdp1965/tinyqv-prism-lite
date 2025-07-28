@@ -52,8 +52,8 @@ module tqvp_prism (
     wire [31:0]         prism_read_data;
     reg  [23:0]         count1_preload;
     reg  [23:0]         count1;
-    reg   [4:0]         count2;
-    reg   [4:0]         count2_compare;
+    reg   [3:0]         count2;
+    reg   [3:0]         count2_compare;
     reg   [1:0]         latched_ctrl;
     reg   [1:0]         latched_out;
     reg   [1:0]         latched_in;
@@ -63,7 +63,7 @@ module tqvp_prism (
     reg                 shift_dir;
     reg                 shift_24;
     reg                 shift_out_mode;
-    reg   [1:0]         shift_out_sel;
+    reg                 shift_out_sel;
     reg   [1:0]         shift_out_en;
     reg   [4:0]         shift_count;
     wire  [6:0]         cond_out_en;
@@ -160,9 +160,9 @@ module tqvp_prism (
             prism_halt_r    <= 1'b0;
             extra_in        <= 2'b0;
             count1_preload  <= 24'b0;
-            count2_compare  <= 5'b0;
+            count2_compare  <= 4'b0;
             count1          <= 24'b0;
-            count2          <= 5'b0;
+            count2          <= 4'b0;
             latched_ctrl    <= 2'b0;
             latched_out     <= 2'h0;
             latched_in      <= 2'h0;
@@ -206,7 +206,7 @@ module tqvp_prism (
             else if (address == 6'h28 && data_write_n == 2'b10)
             begin
                 count1_preload <= data_in[23:0];
-                count2_compare <= data_in[28:24];
+                count2_compare <= data_in[27:24];
             end
 
             // Latch comm_data
