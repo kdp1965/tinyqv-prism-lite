@@ -45,7 +45,7 @@ module tqvp_prism (
     wire [31:0]         prism_read_data;
     reg  [23:0]         count1_preload;
     reg  [23:0]         count1;
-    reg   [4:0]         count2;
+    reg   [3:0]         count2;
     reg   [3:0]         count2_compare;
     reg   [1:0]         latched_ctrl;
     reg   [1:0]         latched_out;
@@ -107,7 +107,7 @@ module tqvp_prism (
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
     assign prism_in_data[14]    = count1[23];
-    assign prism_in_data[15]    = debug_dout_share[4:0] == count2;
+    assign prism_in_data[15]    = debug_dout_share[3:0] == count2;
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
@@ -115,7 +115,7 @@ module tqvp_prism (
     assign data_out = address == 6'h0  ? {prism_interrupt, prism_reset, prism_enable,
                                           11'h0, shift_24, shift_dir, 1'b0, cond_out_sel, 2'b0, comm_in_sel, 2'h0, latched_out, 2'h0, latched_ctrl} :
                       address == 6'h18 ? {22'h0, extra_in, comm_data} :
-                      address == 6'h28 ? {3'h0, count2, count1} :
+                      address == 6'h28 ? {4'h0, count2, count1} :
                       prism_read_data;
 
     // All reads complete in 1 clock
@@ -139,7 +139,7 @@ module tqvp_prism (
             count1_preload  <= 24'b0;
             count2_compare  <= 4'b0;
             count1          <= 24'b0;
-            count2          <= 5'b0;
+            count2          <= 4'b0;
             latched_ctrl    <= 2'b0;
             latched_out     <= 2'h0;
             latched_in      <= 2'h0;
@@ -214,7 +214,7 @@ module tqvp_prism (
     end
 
     assign prism_in_data[10] = count1 == 0;
-    assign prism_in_data[11] = count2[3:0] == count2_compare;
+    assign prism_in_data[11] = count2 == count2_compare;
 
     assign user_interrupt = prism_interrupt;
 
