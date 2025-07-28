@@ -422,7 +422,7 @@ module prism
    for (genvar cond = 0; cond < COND_OUT; cond++)
    begin : COND_FACTORS
       // Create OR and AND output for each conditional OUT
-      assign cond_in[cond] = input_mux_out[0];
+      assign cond_in[cond] = input_mux_out[2];
 
       // Drive the conditional output based on enable and ao_sel 
       assign cond_out_c[cond] = cond_cfg[cond][cond_in[cond]];
