@@ -39,17 +39,17 @@ module tt_um_tqv_peripheral_harness (
   // The peripheral under test.
   // **** Change the module name from tqvp_example to match your peripheral. ****
   tqvp_prism user_peripheral(
-    .clk            ( clk            ),
-    .rst_n          ( rst_reg_n      ),
-    .ui_in          ( ui_in_sync     ),
-    .uo_out         ( uo_out         ),
-    .address        ( address        ),
-    .data_in        ( data_in        ),
-    .data_write_n   ( data_write_n   ),
-    .data_read_n    ( data_read_n    ),
-    .data_out       ( data_out       ),
-    .data_ready     ( data_ready     ),
-    .user_interrupt ( user_interrupt )
+    .clk(clk),
+    .rst_n(rst_reg_n),
+    .ui_in(ui_in_sync),
+    .uo_out(uo_out),
+    .address(address),
+    .data_in(data_in),
+    .data_write_n(data_write_n),
+    .data_read_n(data_read_n),
+    .data_out(data_out),
+    .data_ready(data_ready),
+    .user_interrupt(user_interrupt)
   );
 
   // SPI data indications
@@ -80,20 +80,21 @@ module tt_um_tqv_peripheral_harness (
 
   // The SPI instance
   spi_reg #(.ADDR_W(6), .REG_W(32)) i_spi_reg(
-    .clk           ( clk             ),
-    .rstb          ( rst_reg_n       ),
-    .ena           ( 1'b1            ),
-    .spi_mosi      ( spi_mosi_sync   ),
-    .spi_miso      ( spi_miso        ),
-    .spi_clk       ( spi_clk_sync    ),
-    .spi_cs_n      ( spi_cs_n_sync   ),
-    .reg_addr      ( address         ),
-    .reg_data_i    ( data_out_masked ),
-    .reg_data_o    ( data_in         ),
-    .reg_addr_v    ( addr_valid      ),
-    .reg_data_o_dv ( data_valid      ),
-    .reg_rw        ( data_rw         ),
-    .txn_width     ( txn_n           ) 
+    .clk(clk),
+    .rstb(rst_reg_n),
+    .ena(1'b1),
+    .spi_mosi(spi_mosi_sync),
+    .spi_miso(spi_miso),
+    .spi_clk(spi_clk_sync),
+    .spi_cs_n(spi_cs_n_sync),
+    .reg_addr(address),
+    .reg_data_i(data_out_masked),
+    .reg_data_o(data_in),
+    .reg_addr_v(addr_valid),
+    .reg_data_i_dv(data_ready),
+    .reg_data_o_dv(data_valid),
+    .reg_rw(data_rw),
+    .txn_width(txn_n)
   );
 
   always @(*) begin
