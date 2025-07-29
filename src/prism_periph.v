@@ -118,7 +118,7 @@ module tqvp_prism (
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
     assign prism_in_data[14]    = shift_count == 5'h0;
-    assign prism_in_data[15]    = count1[5:0] == comm_data[5:0];
+    assign prism_in_data[15]    = count1[4:0] == comm_data[4:0];
 
     //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
     assign shift_data = shift_24 ? count1[23] : (shift_dir ? comm_data[0] : comm_data[7]);
