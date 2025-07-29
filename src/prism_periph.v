@@ -110,7 +110,7 @@ module tqvp_prism (
     assign uo_out[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[1:0])));
     assign uo_out[6:3] = (cond_out_en[5:2] & {4{cond_out[0]}}) | (~cond_out_en[5:2] & prism_out_data[5:4]);
     assign uo_out[7]   = (cond_out_en[6]   & {1{cond_out[0]}}) | (~cond_out_en[6]   & (shift_out_mode ? shift_data : prism_out_data[6]));
-    assign uo_out[0] = cond_out[0];
+    assign uo_out[0] = 1'b0;
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
@@ -118,7 +118,7 @@ module tqvp_prism (
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
     assign prism_in_data[14]    = shift_count == 5'h0;
-    assign prism_in_data[15]    = count1[7:0] == comm_data;
+    assign prism_in_data[15]    = count1[5:0] == comm_data[5:0];
 
     //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
     assign shift_data = shift_24 ? count1[23] : (shift_dir ? comm_data[0] : comm_data[7]);
