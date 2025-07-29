@@ -303,8 +303,7 @@ module tqvp_prism (
 
     prism_latch_reg
     #(
-        .WIDTH ( 12 ),
-        .DRIVE ( 4 )
+        .WIDTH ( 12 )
      )
     ctrl_regs
     (

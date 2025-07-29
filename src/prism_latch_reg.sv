@@ -1,7 +1,6 @@
 module prism_latch_reg
 #(
-    parameter WIDTH = 32,
-    parameter DRIVE = 1
+    parameter WIDTH = 32
 )(
     input  wire               enable,
     input  wire               wr,
@@ -37,22 +36,7 @@ module prism_latch_reg
         
         for (b = 0; b < WIDTH; b = b + 1)
         begin : gen_prism_bit
-          if (DRIVE == 1)
             sky130_fd_sc_hd__dlxtp_1 prism_cfg_bit
-            (
-                .D    (data_in[b]),
-                .GATE (gate),
-                .Q    (latch_data[b])
-            );
-         else if (DRIVE == 2)
-            sky130_fd_sc_hd__dlxtp_2 prism_cfg_bit
-            (
-                .D    (data_in[b]),
-                .GATE (gate),
-                .Q    (latch_data[b])
-            );
-         else
-            sky130_fd_sc_hd__dlxtp_4 prism_cfg_bit
             (
                 .D    (data_in[b]),
                 .GATE (gate),
