@@ -22,6 +22,7 @@ project:
     - "latch_loader.v"
     - "prism.v"
     - "prism_latch_sit.v"
+    - "prism_latch_reg.v"
     - "tt_wrapper.v"
     - "test_harness/falling_edge_detector.sv"
     - "test_harness/rising_edge_detector.sv"
