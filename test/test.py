@@ -27,41 +27,41 @@ async def test_project(dut):
 
     # Test register write and read back
     # Write a value to the config array 
-    await tqv.write_word_reg(0x10, 0x10101010)
     await tqv.write_word_reg(0x14, 0x00001010)
+    await tqv.write_word_reg(0x10, 0x10101010)
 
-    await tqv.write_word_reg(0x10, 0x20202020)
     await tqv.write_word_reg(0x14, 0x00002020)
+    await tqv.write_word_reg(0x10, 0x20202020)
 
-    await tqv.write_word_reg(0x10, 0x30303030)
     await tqv.write_word_reg(0x14, 0x00003030)
+    await tqv.write_word_reg(0x10, 0x30303030)
 
-    await tqv.write_word_reg(0x10, 0x40404040)
     await tqv.write_word_reg(0x14, 0x00004040)
+    await tqv.write_word_reg(0x10, 0x40404040)
 
-    await tqv.write_word_reg(0x10, 0x50505050)
     await tqv.write_word_reg(0x14, 0x00005050)
+    await tqv.write_word_reg(0x10, 0x50505050)
 
-    await tqv.write_word_reg(0x10, 0x60606060)
     await tqv.write_word_reg(0x14, 0x00006060)
+    await tqv.write_word_reg(0x10, 0x60606060)
 
-    await tqv.write_word_reg(0x10, 0x70707070)
     await tqv.write_word_reg(0x14, 0x00007070)
+    await tqv.write_word_reg(0x10, 0x70707070)
 
-    await tqv.write_word_reg(0x10, 0x80808080)
     await tqv.write_word_reg(0x14, 0x00008080)
+    await tqv.write_word_reg(0x10, 0x80808080)
 
-#    await tqv.write_word_reg(0x10, 0x90909090)
 #    await tqv.write_word_reg(0x14, 0x00009090)
+#    await tqv.write_word_reg(0x10, 0x90909090)
 
-#    await tqv.write_word_reg(0x10, 0xa0a0a0a0)
 #    await tqv.write_word_reg(0x14, 0x0000a0a0)
+#    await tqv.write_word_reg(0x10, 0xa0a0a0a0)
 
-#    await tqv.write_word_reg(0x10, 0xb0b0b0b0)
 #    await tqv.write_word_reg(0x14, 0x0000b0b0)
+#    await tqv.write_word_reg(0x10, 0xb0b0b0b0)
 
-#    await tqv.write_word_reg(0x10, 0xc0c0c0c0)
 #    await tqv.write_word_reg(0x14, 0x0000c0c0)
+#    await tqv.write_word_reg(0x10, 0xc0c0c0c0)
 
 
     # Wait for two clock cycles to see the output values, because ui_in is synchronized over two clocks,

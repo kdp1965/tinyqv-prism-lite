@@ -63,6 +63,9 @@ module tqvp_prism (
     reg                 shift_24;
     reg                 shift_out_mode;
     reg   [4:0]         shift_count;
+    reg   [31:0]        data_in_r;
+    reg                 latch_wr;
+    reg                 latch_wr_p0;
     wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                comm_in;
@@ -87,6 +90,10 @@ module tqvp_prism (
         .out_data           ( prism_out_data    ),
         .cond_out           ( cond_out          ),
                             
+        // Latch register control
+        .latch_data         ( data_in_r         ),
+        .latch_wr           ( latch_wr          ),
+
         .debug_addr         ( address           ),
         .debug_wr           ( prism_wr          ),
         .debug_wdata        ( data_in           ),
@@ -167,16 +174,26 @@ module tqvp_prism (
             shift_24        <= 1'b0;
             shift_count     <= 5'h0;
             shift_out_mode  <= 1'b0;
+            latch_wr        <= 1'b0;
+            latch_wr_p0     <= 1'b0;
             //shift_out_sel   <= 1'h0;
         end
         else
         begin
+            // Create a delayed data_write signal for latches
+            latch_wr_p0 <= prism_wr;
+            latch_wr    <= latch_wr_p0;
+
+            // Save data_in for latch and config writes
+            if (prism_wr)
+                data_in_r <= data_in;
+
             // Detect rising edge of HALT
             prism_halt_r <= prism_halt;
             
             if ((prism_halt && !prism_halt_r) | (prism_out_data[OUT_COUNT2_CLEAR] & prism_out_data[OUT_COUNT2_INC])) begin
                 prism_interrupt <= 1;
-            end else if (address == 6'h0 && data_write_n == 2'b10)
+            end else if (address == 6'h0 && prism_wr)
             begin
                 // Test for interrupt clear
                 if (data_in[31])
@@ -234,7 +251,7 @@ module tqvp_prism (
                         shift_count <= 5'h0;
                 end
 
-                // 4-bit counter
+                // 5-bit counter
                 if (prism_out_data[OUT_COUNT2_CLEAR] && !prism_out_data[OUT_COUNT2_INC])
                     count2 <= 5'h0; 
                 else if (prism_out_data[OUT_COUNT2_INC] && !prism_out_data[OUT_COUNT2_CLEAR])

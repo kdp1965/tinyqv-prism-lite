@@ -38,15 +38,14 @@ module prism_latch_sit
                             DEPTH > 2  ? 2 : 1
 )
 (
- /*
-`ifdef USE_POWER_PINS
-   input                         VPWR,
-   input                         VGND,
-`endif
-*/
-
    input  wire                   clk,
    input  wire                   rst_n,
+
+   // ============================
+   // Latch bus
+   // ============================
+   input  wire [31:0]            latch_data,
+   input                         latch_wr,
 
    // ============================
    // Debug bus for programming
@@ -66,7 +65,6 @@ module prism_latch_sit
    Instantiate the Latch RAMs
    =================================================================================
    */
-   wire                    config_write;
    wire [WIDTH-1:0]        config_data;
    wire [DEPTH-1:0]        config_latch_en;
    wire [WIDTH*DEPTH-1:0]  config_bus;
@@ -77,7 +75,6 @@ module prism_latch_sit
    Latch RAM for SI[1]
    =================================================================================
    */
-   assign config_write = (debug_addr == 6'h10 || debug_addr == 6'h14) && debug_wr;
    latch_loader
    #(
       .DEPTH    ( DEPTH ),
@@ -87,9 +84,10 @@ module prism_latch_sit
    (
        .clk          ( clk             ),
        .rst_n        ( rst_n           ),
-       .write_req    ( config_write    ),
-       .address      ( debug_addr[2:0] ),
-       .data_in      ( debug_wdata     ),
+       .address      ( debug_addr      ),
+       .debug_wr     ( debug_wr        ),
+       .latch_wr     ( latch_wr        ),
+       .data_in      ( latch_data      ),
        .config_data  ( config_data     ),
        .latch_en     ( config_latch_en )
    );
@@ -101,12 +99,6 @@ module prism_latch_sit
    )
    i_prism_latch_sit
    (
-    /*
-`ifdef USE_POWER_PINS
-       .VGND(VGND),
-       .VPWR(VPWR),
-`endif
-*/
         .rst_n        ( rst_n            ),
         .data_in      ( config_data     ),
         .latch_en     ( config_latch_en ),

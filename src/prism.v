@@ -124,7 +124,11 @@ module prism
    output  wire [OUTPUTS-1:0]    out_data,         // Bit Slip pulse back to SerDes
    output  wire [COND_OUT-1:0]   cond_out,         // Conditional outputs
 
-//   output  wire [OUTPUTS-1:0]    debug_dout_share,
+   // ============================
+   // Latch programming bus
+   // ============================
+   input  wire [31:0]            latch_data,
+   input  wire                   latch_wr,
 
    // ============================
    // Debug bus for programming
@@ -135,7 +139,6 @@ module prism
    output wire [31:0]            debug_rdata,        // Debug read data
    output wire                   debug_halt_either
   );
-
 
    localparam W_PAR_IN    = INPUT_BITS;
    localparam RA_BITS     = DEPTH > 256 ? 9 : DEPTH > 128 ? 8 : DEPTH > 64 ? 7 :
@@ -203,7 +206,6 @@ module prism
    wire                       debug_entry;
 //   reg   [OUTPUTS-1:0]        debug_dout;          // Outputs during debug
 
-
    // Debug control regs
    reg                        debug_halt;
    reg                        debug_step_pending;
@@ -232,6 +234,10 @@ module prism
       .clk                   ( clk              ),
       .rst_n                 ( rst_n            ),
                                                         
+      // Latch bus
+      .latch_data            ( latch_data       ),
+      .latch_wr              ( latch_wr         ),
+
       // Periph bus interface                           
       .debug_addr            ( debug_addr       ),
       .debug_wdata           ( debug_wdata      ),

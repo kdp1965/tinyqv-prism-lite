@@ -5,10 +5,11 @@ module latch_loader #(
     input  wire                  clk,
     input  wire                  rst_n,
 
-    input  wire                  write_req,        // One-cycle pulse to initiate write
+    input  wire                  debug_wr,         // One-cycle pulse to initiate write
+    input  wire                  latch_wr,         // Latch write signal properly timed
     input  wire  [31:0]          data_in,          // Incoming data from RISC-V
-    input  wire  [2:0]           address,          // Input address
-    output reg   [WIDTH-1:0]     config_data,      // Incoming data from RISC-V
+    input  wire  [5:0]           address,          // Input address
+    output wire  [WIDTH-1:0]     config_data,      // Incoming data from RISC-V
     output reg   [DEPTH-1:0]     latch_en          // Latch enables, active high
 );
 
@@ -22,10 +23,14 @@ module latch_loader #(
     reg  [1:0]           state, next_state;
     reg  [IDX_BITS-1:0]  index;
     reg  [DEPTH-1:0]     next_latch_en;
+    wire                 msb_enable;
     wire                 load;
+//    wire                 write_req;
 
     // Load when write_req and MSB of config data available
-    assign load = write_req && address == 3'h4;
+//    assign write_req = (debug_addr == 6'h10 || debug_addr == 6'h14) && debug_wr;
+    assign load       = address == 6'h10 && debug_wr;
+    assign msb_enable = address == 6'h14;
 
     // Sequential state machine
     always @(posedge clk or negedge rst_n)
@@ -64,6 +69,21 @@ module latch_loader #(
     end
 
     // Data buffer
+    assign config_data[31:0] = data_in;
+
+    prism_latch_reg 
+    #(
+      .WIDTH(WIDTH-32)
+    )
+    config_msb
+    (
+        .enable      ( msb_enable              ),
+        .wr          ( latch_wr                ),
+        .data_in     ( data_in[WIDTH-32-1:0]   ),
+        .data_out    ( config_data[WIDTH-1:32] )
+    );
+
+   /*
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             config_data <= '0;
@@ -75,5 +95,6 @@ module latch_loader #(
                config_data[WIDTH-1:32] <= data_in[WIDTH-32-1:0];
         end
     end
+    */
 
 endmodule
