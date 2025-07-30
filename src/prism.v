@@ -194,7 +194,8 @@ module prism
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
 
    // Debug control register
-   reg  [W_DBG_CTRL-1:0]      debug_ctrl0;
+   wire [W_DBG_CTRL-1:0]      debug_ctrl0;
+   wire                       debug_ctrl0_en;
    wire                       debug_halt_req;
    wire                       debug_step_si;
    wire                       debug_bp_en0;
@@ -470,7 +471,7 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-         debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
+//         debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
          debug_si    <= {SI_BITS{1'b0}};
       end
       else
@@ -482,7 +483,7 @@ module prism
             if (debug_addr[3:0] == 4'h4)
             begin
                // Save debug register
-               debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
+//               debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
 
                // New SI load from debug interface
                if (debug_new_si)
@@ -493,6 +494,26 @@ module prism
             debug_si <= next_si;
       end
    end
+
+
+   /*
+   ===================================================================================== 
+   Instantiate the debug_ctrl register
+   ===================================================================================== 
+   */
+   prism_latch_reg
+   #(
+      .WIDTH   ( W_DBG_CTRL )
+    )
+   i_debug_ctrl0
+   (
+      .rst_n    ( rst_n                      ),
+      .enable   ( debug_ctrl0_en             ),
+      .wr       ( latch_wr                   ),
+      .data_in  ( latch_data[W_DBG_CTRL-1:0] ),
+      .data_out ( debug_ctrl0                )
+   );
+   assign debug_ctrl0_en = INCLUDE_DEBUG && (debug_addr == 6'h4);
 
    /*
    ===================================================================================== 
