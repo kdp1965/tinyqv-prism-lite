@@ -25,10 +25,8 @@ module latch_loader #(
     reg  [DEPTH-1:0]     next_latch_en;
     wire                 msb_enable;
     wire                 load;
-//    wire                 write_req;
 
     // Load when write_req and MSB of config data available
-//    assign write_req = (debug_addr == 6'h10 || debug_addr == 6'h14) && debug_wr;
     assign load       = address == 6'h10 && debug_wr;
     assign msb_enable = address == 6'h14;
 
