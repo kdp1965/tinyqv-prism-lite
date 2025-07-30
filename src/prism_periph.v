@@ -184,6 +184,7 @@ module tqvp_prism (
             //shift_out_mode  <= 1'b0;
             latch_wr        <= 1'b0;
             latch_wr_p0     <= 1'b0;
+            latch_data      <= 32'h0;
             //shift_out_sel   <= 1'h0;
         end
         else
