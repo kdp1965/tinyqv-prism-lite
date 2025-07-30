@@ -26,9 +26,9 @@ async def test_project(dut):
     dut._log.info("Test project behavior")
 
     # Write values to the count2_compare / count1_preload
-    await tqv.write_word_reg(0x20, 0x0300FA12)
-    await ClockCycles(dut.clk, 8)
     await tqv.write_word_reg(0x00, 0x00000003)
+    await ClockCycles(dut.clk, 8)
+    await tqv.write_word_reg(0x20, 0x0300FA12)
     await ClockCycles(dut.clk, 8)
 
     assert await tqv.read_word_reg(0x20) == 0x0300FA12
