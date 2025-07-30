@@ -31,17 +31,17 @@ module prism_latch_reg
     genvar i;
     genvar b;
     generate
-        sky130_fd_sc_hd__and2_1 gate_and (.A(enable), .B(wr), .X(pre_reset));
+        (* keep = 1 *) sky130_fd_sc_hd__and2_1 gate_and (.A(enable), .B(wr), .X(pre_reset));
         if (WIDTH < 6)
-            sky130_fd_sc_hd__or2_1 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
+            (* keep = 1 *) sky130_fd_sc_hd__or2_1 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
         else if (WIDTH < 12)
-            sky130_fd_sc_hd__or2_2 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
+            (* keep = 1 *) sky130_fd_sc_hd__or2_2 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
         else
-            sky130_fd_sc_hd__or2_4 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
+            (* keep = 1 *) sky130_fd_sc_hd__or2_4 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
         
         for (b = 0; b < WIDTH; b = b + 1)
         begin : gen_prism_bit
-            sky130_fd_sc_hd__dlxtp_1 prism_cfg_bit
+            (* keep = 1 *) sky130_fd_sc_hd__dlxtp_1 prism_cfg_bit
             (
                 .D    (data_in[b]),
                 .GATE (gate),

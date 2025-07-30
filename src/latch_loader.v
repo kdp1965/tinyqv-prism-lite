@@ -10,7 +10,7 @@ module latch_loader #(
     input  wire  [31:0]          data_in,          // Incoming data from RISC-V
     input  wire  [5:0]           address,          // Input address
     output wire  [WIDTH-1:0]     config_data,      // Incoming data from RISC-V
-    output reg   [DEPTH-1:0]     latch_en          // Latch enables, active high
+    output wire  [DEPTH-1:0]     latch_en          // Latch enables, active high
 );
 
     localparam    IDX_BITS = DEPTH > 16 ? 5 : DEPTH > 8 ? 4 : 3;
@@ -19,10 +19,12 @@ module latch_loader #(
     localparam IDLE    = 2'd0;
     localparam SHIFT   = 2'd1;
     localparam WAIT    = 2'd2;
+    localparam NEXT    = 2'd3;
 
     reg  [1:0]           state, next_state;
     reg  [IDX_BITS-1:0]  index;
-    reg  [DEPTH-1:0]     next_latch_en;
+    reg                  latch_pulse;
+    reg  [DEPTH-1:0]     idx_decode;
     wire                 msb_enable;
     wire                 load;
 
@@ -30,19 +32,27 @@ module latch_loader #(
     assign load       = address == 6'h10 && debug_wr;
     assign msb_enable = address == 6'h14;
 
+    genvar i;
+    generate
+      for (i = 0; i < DEPTH; i = i + 1)
+      begin : IDX_GEN
+        assign idx_decode[i] = i == index;
+      end
+    endgenerate
+
     // Sequential state machine
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n) begin
-            state    <= IDLE;
-            index    <= {IDX_BITS{1'b0}};
-            latch_en <= {DEPTH{1'b0}};
+            state       <= IDLE;
+            index       <= {IDX_BITS{1'b0}};
+            latch_pulse <= 1'b0;
         end else begin
             state    <= next_state;
-            latch_en <= next_latch_en;
+            latch_pulse <= state == SHIFT ? 1'b1 : 1'b0;
             if (state == IDLE && load)
                 index <= DEPTH - 1;
-            else if (state == WAIT)
+            else if (state == NEXT)
                 index <= index - 1;
         end
     end
@@ -53,18 +63,29 @@ module latch_loader #(
         case (state)
             IDLE:    if (load) next_state = SHIFT;
             SHIFT:   next_state = WAIT;
-            WAIT:    next_state = (index == 0) ? IDLE : SHIFT;
+            WAIT:    next_state = NEXT;
+            NEXT:    next_state = (index == 0) ? IDLE : SHIFT;
             default: next_state = IDLE;
         endcase
     end
 
     // Latch enable logic
-    always @*
-    begin
-        next_latch_en = {DEPTH{1'b0}};
-        if (state == SHIFT)
-            next_latch_en[index] = 1'b1;
-    end
+`ifdef SIM
+   assign latch_en = idx_decode & {DEPTH{latch_pulse}};
+`else
+    generate
+      for (i = 0; i < DEPTH; i = i + 1)
+      begin : AND_GEN
+         // Instantiate AND gate for latch enable
+         (* keep = 1 *) sky130_fd_sc_hd__and2_4 gate_and
+                       (
+                           .A ( idx_decode[i] ),
+                           .B ( latch_pulse   ),
+                           .X ( latch_en[i]   )
+                       );
+      end
+    endgenerate
+`endif
 
     // Data buffer
     assign config_data[31:0] = data_in;
