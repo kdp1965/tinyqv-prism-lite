@@ -205,7 +205,6 @@ module prism
    wire                       debug_new_si;
    wire  [SI_BITS-1:0]        debug_new_siv;
    wire                       debug_entry;
-//   reg   [OUTPUTS-1:0]        debug_dout;          // Outputs during debug
 
    // Debug control regs
    reg                        debug_halt;
@@ -418,7 +417,6 @@ module prism
    assign out_data_m = out_data_c;
 
    assign out_data_fsm = fsm_enable ? out_data_m : {OUTPUTS{1'b0}};
-   //assign out_data = INCLUDE_DEBUG & debug_halt ? debug_dout : out_data_fsm;
    assign out_data = out_data_fsm;
 
    /* 
@@ -471,7 +469,6 @@ module prism
    begin
       if (~rst_n | debug_reset)
       begin
-//         debug_ctrl0 <= {W_DBG_CTRL{1'b0}};
          debug_si    <= {SI_BITS{1'b0}};
       end
       else
@@ -482,9 +479,6 @@ module prism
             // Test for write to top-level control reg
             if (debug_addr[3:0] == 4'h4)
             begin
-               // Save debug register
-//               debug_ctrl0 <= debug_wdata[W_DBG_CTRL-1:0];
-
                // New SI load from debug interface
                if (debug_new_si)
                   debug_si <= debug_new_siv;
@@ -539,7 +533,6 @@ module prism
 
       4'h3:   begin
                   case (debug_addr[3:0])
-//                  4'h0: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, debug_dout};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
                   4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
@@ -549,8 +542,6 @@ module prism
       default: debug_rdata_prism = 32'h0;
       endcase
    end
-
-//   assign debug_dout_share = debug_dout;
 
    localparam LUT_INOUT_SIZE = 1 + LUT_SIZE;
 
@@ -565,20 +556,6 @@ module prism
       for (cmp = 0; cmp <= DUAL_COMPARE; cmp++)
          decision_tree_data[(cmp+1)*LUT_INOUT_SIZE-1 -: LUT_INOUT_SIZE] = {compare_match[cmp], lut_inputs[cmp]};
    end
-
-   // Generate Periph read-back for in_data
-   /*
-   generate
-      always @*
-      begin
-         // Default to zero
-         debug_in_data = 32'h0;
-
-         // Override bits based on number of inputs defined by parameter
-         debug_in_data[INPUTS-1:0] = in_data;
-      end
-   endgenerate
-   */
 
    /* 
    =================================================================================
@@ -638,7 +615,6 @@ module prism
          debug_step_si_last <= 1'h0;
 
          debug_break_active <= 2'h0;
-//         debug_dout <= {OUTPUTS{1'b0}};
       end
       else
       begin
@@ -659,7 +635,6 @@ module prism
          begin
             // Halt the FSM
             debug_halt <= 1'b1;
-//            debug_dout <= out_data_fsm;
             debug_step_pending <= 1'b0;
 
             // If halt requested, clear debug_break_active
@@ -688,14 +663,6 @@ module prism
             debug_step_pending <= 1'b0;
             debug_break_active <= 2'b0;
          end
-
-         /*
-         else if (INCLUDE_DEBUG && debug_wr && (debug_addr == 6'h30))
-         begin
-            // Save debug register
-            debug_dout <= debug_wdata[OUTPUTS-1:0];
-         end
-         */
 
          // Test for resume from halt request
          debug_halt_req_p1 <= debug_halt_req;
