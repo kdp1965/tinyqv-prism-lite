@@ -307,6 +307,7 @@ module tqvp_prism (
      )
     ctrl_regs
     (
+        .rst_n      ( rst_n         ),
         .enable     ( ctrl_reg_en   ),
         .wr         ( latch_wr      ),
         .data_in    ( ctrl_bits_in  ),
@@ -319,6 +320,7 @@ module tqvp_prism (
      )
     count_preloads
     (
+        .rst_n      ( rst_n                            ),
         .enable     ( count_reg_en                     ),
         .wr         ( latch_wr                         ),
         .data_in    ( latch_data                       ),

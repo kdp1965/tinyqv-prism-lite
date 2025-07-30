@@ -77,24 +77,11 @@ module latch_loader #(
     )
     config_msb
     (
+        .rst_n       ( rst_n                   ),
         .enable      ( msb_enable              ),
         .wr          ( latch_wr                ),
         .data_in     ( data_in[WIDTH-32-1:0]   ),
         .data_out    ( config_data[WIDTH-1:32] )
     );
-
-   /*
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            config_data <= '0;
-        end else if (write_req) 
-        begin 
-            if (address == 3'h0)
-               config_data[31:0] <= data_in;
-            if (address == 3'h4)
-               config_data[WIDTH-1:32] <= data_in[WIDTH-32-1:0];
-        end
-    end
-    */
 
 endmodule
