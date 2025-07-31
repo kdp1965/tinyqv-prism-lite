@@ -1,7 +1,6 @@
 module latch_loader #(
     parameter DEPTH    = 8,
-    parameter WIDTH    = 64,
-    parameter IDX_BITS = DEPTH > 16 ? 5 : DEPTH > 8 ? 4 : 3
+    parameter WIDTH    = 64
 )(
     input  wire                  clk,
     input  wire                  rst_n,
@@ -10,13 +9,11 @@ module latch_loader #(
     input  wire                  latch_wr,         // Latch write signal properly timed
     input  wire  [31:0]          data_in,          // Incoming data from RISC-V
     input  wire  [5:0]           address,          // Input address
-    input  wire  [IDX_BITS-1:0]  index,
-    output wire                  index_load,
-    output wire                  index_dec,
     output wire  [WIDTH-1:0]     config_data,      // Incoming data from RISC-V
     output wire  [DEPTH-1:0]     latch_en          // Latch enables, active high
 );
 
+    localparam    IDX_BITS = DEPTH > 16 ? 5 : DEPTH > 8 ? 4 : 3;
 
     // Counter-based FSM
     localparam IDLE    = 2'd0;
@@ -25,7 +22,7 @@ module latch_loader #(
     localparam NEXT    = 2'd3;
 
     reg  [1:0]           state, next_state;
-//    reg  [IDX_BITS-1:0]  index;
+    reg  [IDX_BITS-1:0]  index;
     reg                  latch_pulse;
     reg  [DEPTH-1:0]     idx_decode;
     wire                 msb_enable;
@@ -43,25 +40,20 @@ module latch_loader #(
       end
     endgenerate
 
-    assign index_load = state == IDLE && load;
-    assign index_dec  = state == NEXT;
-
     // Sequential state machine
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n) begin
             state       <= IDLE;
-//            index       <= {IDX_BITS{1'b0}};
+            index       <= {IDX_BITS{1'b0}};
             latch_pulse <= 1'b0;
         end else begin
             state    <= next_state;
             latch_pulse <= state == SHIFT ? 1'b1 : 1'b0;
-            /*
             if (state == IDLE && load)
                 index <= DEPTH - 1;
             else if (state == NEXT)
                 index <= index - 1;
-            */
         end
     end
 

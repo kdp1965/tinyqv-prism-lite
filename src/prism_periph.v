@@ -31,9 +31,7 @@ module tqvp_prism (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
-    localparam  OUTPUTS  = 13;
-    localparam  DEPTH    = 8;
-    localparam  IDX_BITS = DEPTH > 16 ? 5 : DEPTH > 8 ? 4 : 3;
+    localparam  OUTPUTS = 13;
 
     localparam  OUT_COUNT1_DEC      = 7;
     localparam  OUT_COUNT1_LOAD     = 8;
@@ -87,44 +85,32 @@ module tqvp_prism (
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
     wire                fifo_empty;
-    wire                config_idx_load;
-    wire                config_idx_dec;
 
-    // =================================================
-    // Instantiate the PRISM controller
-    // =================================================
+    // Instantiate the prism controller
     prism
     #(
-        .OUTPUTS ( OUTPUTS ),
-        .DEPTH   ( DEPTH   )
+        .OUTPUTS ( OUTPUTS )
      )
     i_prism
     (
-        .clk                ( clk                  ),
-        .rst_n              ( rst_n                ),
+        .clk                ( clk               ),
+        .rst_n              ( rst_n             ),
 
-        // Config flop sharing
-        .config_index       ( count2[IDX_BITS-1:0] ),
-        .config_idx_load    ( config_idx_load      ),
-        .config_idx_dec     ( config_idx_dec       ),
-                                                   
-        // PRISM run control and I/O
-        .debug_reset        ( prism_reset          ),
-        .fsm_enable         ( prism_enable         ),
-        .in_data            ( prism_in_data        ),
-        .out_data           ( prism_out_data       ),
-        .cond_out           ( cond_out             ),
-                                                   
-        // Latch register control                  
-        .latch_data         ( latch_data           ),
-        .latch_wr           ( latch_wr             ),
-                                                   
-        // Debug and programming interface
-        .debug_addr         ( address              ),
-        .debug_wr           ( prism_wr             ),
-        .debug_wdata        ( data_in              ),
-        .debug_rdata        ( prism_read_data      ),
-        .debug_halt_either  ( prism_halt           )
+        .debug_reset        ( prism_reset       ),
+        .fsm_enable         ( prism_enable      ),
+        .in_data            ( prism_in_data     ),
+        .out_data           ( prism_out_data    ),
+        .cond_out           ( cond_out          ),
+                            
+        // Latch register control
+        .latch_data         ( latch_data        ),
+        .latch_wr           ( latch_wr          ),
+
+        .debug_addr         ( address           ),
+        .debug_wr           ( prism_wr          ),
+        .debug_wdata        ( data_in           ),
+        .debug_rdata        ( prism_read_data   ),
+        .debug_halt_either  ( prism_halt        )
     );
 
     assign prism_wr = data_write_n != 2'b11;
@@ -332,15 +318,6 @@ module tqvp_prism (
                     latched_in  <= ui_in[1:0];
                 end
             end
-            else
-            begin
-                // Reuse count2 for config counter
-                if (config_idx_load)
-                    count2 <= DEPTH-1;
-                else if (config_idx_dec)
-                    count2 <= count2 - 1;
-            end
-            
         end
     end
 
