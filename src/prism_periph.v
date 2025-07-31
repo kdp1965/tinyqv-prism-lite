@@ -64,7 +64,7 @@ module tqvp_prism (
     wire                fifo_24;
     wire                count2_dec;
     wire                shift_out_mode;
-    reg   [4:0]         shift_count;
+    reg   [2:0]         shift_count;
     reg   [31:0]        latch_data;
     reg                 latch_wr;
     reg                 latch_wr_p0;
@@ -136,7 +136,7 @@ module tqvp_prism (
     assign prism_in_data[7]     = shift_data;
     assign prism_in_data[9:8]   = extra_in;
     assign prism_in_data[13:12] = latched_in ^ ui_in[1:0];
-    assign prism_in_data[14]    = shift_count == 5'h0;
+    assign prism_in_data[14]    = shift_24 ? ({fifo_count, shift_count} == 5'h0) : (shift_count == 3'h0);
     assign prism_in_data[15]    = count2 == comm_data;
 
     //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
@@ -197,7 +197,7 @@ module tqvp_prism (
             latched_out     <= 2'h0;
             latched_in      <= 2'h0;
             comm_data       <= 8'h0;
-            shift_count     <= 5'h0;
+            shift_count     <= 3'h0;
             latch_wr        <= 1'b0;
             latch_wr_p0     <= 1'b0;
             latch_data      <= 32'h0;
@@ -294,14 +294,13 @@ module tqvp_prism (
                     else if (fifo_read && !fifo_write && fifo_count != 2'h0)
                         fifo_count <= fifo_count - 1;
                 end
+                else if (shift_24 && prism_out_data[OUT_SHIFT] && shift_count == 3'h7)
+                    fifo_count <= fifo_count + 1;
 
                 // Count the number of shifts
                 if (prism_out_data[OUT_SHIFT])
                 begin
-                    if (shift_24 || (!shift_24 && shift_count != 5'h7))
-                        shift_count <= shift_count + 1;
-                    else 
-                        shift_count <= 5'h0;
+                    shift_count <= shift_count + 1;
                 end
 
                 // 8-bit counter
@@ -313,9 +312,9 @@ module tqvp_prism (
                     count2 <= count2 - 1;
                 
                 // Latch the lower 2 outputs
+                latched_out <= prism_out_data[1:0];
                 if (prism_out_data[OUT_LATCH])
                 begin
-                    latched_out <= prism_out_data[1:0];
                     latched_in  <= ui_in[1:0];
                 end
             end
@@ -377,7 +376,7 @@ module tqvp_prism (
         .rst_n      ( rst_n                            ),
         .enable     ( count_reg_en                     ),
         .wr         ( latch_wr                         ),
-        .data_in    ( latch_data[30:0]                 ),
+        .data_in    ( latch_data[31:0]                 ),
         .data_out   ( {count2_compare, count1_preload} )
     );
 
