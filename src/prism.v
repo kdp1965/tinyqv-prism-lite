@@ -521,18 +521,16 @@ module prism
 
       // Detect debug read
       case (debug_addr[W_ADDR-1:4])
-      4'h0: begin
+      2'h0: begin
                case (debug_addr[3:0])
-                  4'h4:    debug_rdata_prism = {{(32-W_DBG_CTRL){1'b0}},debug_si, 1'b0, debug_ctrl0};
-                  4'hC:    debug_rdata_prism = { {(26-SI_BITS*4) {1'b0}}, 
-                              2'h0,                            1'b0,                    {SI_BITS{1'b0}},      {SI_BITS{1'b0}},
-                              debug_break_active[0],           debug_halt,              next_si,              curr_si};
+                  4'h4:    debug_rdata_prism = {{(32-(W_DBG_CTRL+SI_BITS)){1'b0}},debug_si, debug_ctrl0};
+                  4'hC:    debug_rdata_prism = {{(32-SI_BITS*2 - 2){1'b0}}, debug_break_active[0], debug_halt, next_si, curr_si};
                   default: debug_rdata_prism = 32'h0; 
                endcase
            end
-      4'h1:   debug_rdata_prism = debug_rdata_ram;
+      2'h1:   debug_rdata_prism = debug_rdata_ram;
 
-      4'h3:   begin
+      2'h3:   begin
                   case (debug_addr[3:0])
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};

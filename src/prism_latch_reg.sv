@@ -32,12 +32,13 @@ module prism_latch_reg
     genvar b;
     generate
         (* keep = 1 *) sky130_fd_sc_hd__and2_1 gate_and (.A(enable), .B(wr), .X(pre_reset));
-        if (WIDTH < 6)
+        if (WIDTH < 6) begin : GEN_OR_X1
             (* keep = 1 *) sky130_fd_sc_hd__or2_1 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
-        else if (WIDTH < 12)
+        end else if (WIDTH < 12) begin : GEN_OR_X2
             (* keep = 1 *) sky130_fd_sc_hd__or2_2 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
-        else
+        end else begin : GEN_OR_X4
             (* keep = 1 *) sky130_fd_sc_hd__or2_4 gate_or (.A(pre_reset), .B(~rst_n), .X(gate));
+        end
         
         for (b = 0; b < WIDTH; b = b + 1)
         begin : gen_prism_bit

@@ -85,7 +85,7 @@ module tqvp_prism (
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
     wire                fifo_empty;
-    wire  [6:0]         uo_out_c;
+    wire  [1:0]         uo_out_c;
     wire                clk_div2;
     reg                 clk_gate;
 
@@ -103,7 +103,9 @@ module tqvp_prism (
 `ifdef SIM
     assign clk_div2 = clk_gate & clk;
 `else
+    /* verilator lint_off PINMISSING */
     sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
+    /* verilator lint_on PINMISSING */
 `endif
     
     // =============================================================
@@ -149,10 +151,10 @@ module tqvp_prism (
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
-    assign uo_out_c[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & prism_out_data[1:0]);
+    assign uo_out_c[1:0] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & prism_out_data[1:0]);
 
     assign uo_out[2:1] = (latched_ctrl & latched_out) | (~latched_ctrl & uo_out_c[1:0]);
-    assign uo_out[6:3] = (cond_out_en[5:2] & {4{cond_out[0]}}) | (~cond_out_en[5:2] & prism_out_data[5:4]);
+    assign uo_out[6:3] = (cond_out_en[5:2] & {4{cond_out[0]}}) | (~cond_out_en[5:2] & prism_out_data[5:2]);
     assign uo_out[7]   = (cond_out_en[6]   & {1{cond_out[0]}}) | (~cond_out_en[6]   & (shift_out_mode ? shift_data : prism_out_data[6]));
     assign uo_out[0] = cond_out[0];
     

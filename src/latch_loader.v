@@ -76,6 +76,7 @@ module latch_loader #(
     generate
       for (i = 0; i < DEPTH; i = i + 1)
       begin : AND_GEN
+         /* verilator lint_off PINMISSING */
          // Instantiate AND gate for latch enable
          (* keep = 1 *) sky130_fd_sc_hd__and2_1 gate_and
                        (
@@ -83,6 +84,7 @@ module latch_loader #(
                            .B ( latch_pulse   ),
                            .X ( latch_en[i]   )
                        );
+         /* verilator lint_on PINMISSING */
       end
     endgenerate
 `endif
