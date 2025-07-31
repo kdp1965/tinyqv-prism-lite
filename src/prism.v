@@ -117,6 +117,11 @@ module prism
    input   wire                  debug_reset,
    input   wire                  fsm_enable,       // Enable signal
 
+   // Config shared Flop signals
+   input   wire [SI_BITS-1:0]    config_index,
+   output  wire                  config_idx_load,
+   output  wire                  config_idx_dec,
+
    // Symbol and other state detect inputs
    input   wire [INPUTS-1:0]     in_data,          // The input data
 
@@ -237,6 +242,11 @@ module prism
       // Latch bus
       .latch_data            ( latch_data       ),
       .latch_wr              ( latch_wr         ),
+
+      // Config shared flops
+      .config_index          ( config_index     ),
+      .config_idx_load       ( config_idx_load  ),
+      .config_idx_dec        ( config_idx_dec   ),
 
       // Periph bus interface                           
       .debug_addr            ( debug_addr       ),

@@ -41,6 +41,10 @@ module prism_latch_sit
    input  wire                   clk,
    input  wire                   rst_n,
 
+   input  wire [A_BITS-1:0]      config_index,
+   output wire                   config_idx_load,
+   output wire                   config_idx_dec,
+
    // ============================
    // Latch bus
    // ============================
@@ -87,6 +91,9 @@ module prism_latch_sit
        .address      ( debug_addr      ),
        .debug_wr     ( debug_wr        ),
        .latch_wr     ( latch_wr        ),
+       .index        ( config_index    ),
+       .index_load   ( config_idx_load ),
+       .index_dec    ( config_idx_dec  ),
        .data_in      ( latch_data      ),
        .config_data  ( config_data     ),
        .latch_en     ( config_latch_en )
