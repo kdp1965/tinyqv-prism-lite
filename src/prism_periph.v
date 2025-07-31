@@ -85,8 +85,30 @@ module tqvp_prism (
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
     wire                fifo_empty;
+    wire  [6:0]         uo_out_c;
+    wire                clk_div2;
+    reg                 clk_gate;
 
-    // Instantiate the prism controller
+    // =============================================================
+    // Crate a divide by 2 clock using clock gate
+    // =============================================================
+    always @(posedge clk or negedge rst_n)
+    begin
+        if (~rst_n)
+            clk_gate <= 1'b0;
+        else if (prism_enable)
+            clk_gate <= ~clk_gate;
+    end
+
+`ifdef SIM
+    assign clk_div2 = clk_gate & clk;
+`else
+    sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
+`endif
+    
+    // =============================================================
+    // Instantiate the PRISM controller
+    // =============================================================
     prism
     #(
         .OUTPUTS ( OUTPUTS )
@@ -94,6 +116,7 @@ module tqvp_prism (
     i_prism
     (
         .clk                ( clk               ),
+        .clk_div2           ( clk_div2          ),
         .rst_n              ( rst_n             ),
 
         .debug_reset        ( prism_reset       ),
@@ -126,7 +149,9 @@ module tqvp_prism (
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
-    assign uo_out[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & ((latched_ctrl & latched_out) | (~latched_ctrl & prism_out_data[1:0])));
+    assign uo_out_c[2:1] = (cond_out_en[1:0] & {2{cond_out[0]}}) | (~cond_out_en[1:0] & prism_out_data[1:0]);
+
+    assign uo_out[2:1] = (latched_ctrl & latched_out) | (~latched_ctrl & uo_out_c[1:0]);
     assign uo_out[6:3] = (cond_out_en[5:2] & {4{cond_out[0]}}) | (~cond_out_en[5:2] & prism_out_data[5:4]);
     assign uo_out[7]   = (cond_out_en[6]   & {1{cond_out[0]}}) | (~cond_out_en[6]   & (shift_out_mode ? shift_data : prism_out_data[6]));
     assign uo_out[0] = cond_out[0];
@@ -141,7 +166,7 @@ module tqvp_prism (
 
     //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
     assign shift_data = shift_24 ? count1[23] : (shift_dir ? comm_data[0] : comm_data[7]);
-    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24;
+    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & clk_gate;
     assign fifo_read  = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
     assign fifo_full  = fifo_24 && fifo_count == 2'h2;
     assign fifo_empty = fifo_24 && fifo_count == 2'h0;
@@ -192,16 +217,10 @@ module tqvp_prism (
             prism_interrupt <= 1'b0;
             prism_halt_r    <= 1'b0;
             extra_in        <= 2'b0;
-            count1          <= 24'b0;
-            count2          <= 8'b0;
-            latched_out     <= 2'h0;
-            latched_in      <= 2'h0;
             comm_data       <= 8'h0;
-            shift_count     <= 3'h0;
             latch_wr        <= 1'b0;
             latch_wr_p0     <= 1'b0;
             latch_data      <= 32'h0;
-            fifo_wr_ptr     <= 2'h0;
             fifo_rd_ptr     <= 2'h0;
             fifo_count      <= 2'h0;
         end
@@ -236,9 +255,50 @@ module tqvp_prism (
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
                 comm_data <= data_in[7:0];
-            else if (prism_exec && !shift_24 && prism_out_data[OUT_SHIFT])
+            else if (prism_exec && !shift_24 && prism_out_data[OUT_SHIFT] && clk_gate)
                 comm_data <= shift_dir ? {comm_in, comm_data[7:1]}: {comm_data[6:0], comm_in};
 
+            if (prism_exec)
+            begin
+                // Manage fifo read pointer
+                if (fifo_24 && fifo_read && (fifo_count != 2'h0 || fifo_write))
+                begin
+                    // Increment FIFO read pointer
+                    if (fifo_rd_ptr == 2'h2)
+                        fifo_rd_ptr <= 2'h0;
+                    else
+                        fifo_rd_ptr <= fifo_rd_ptr + 1;
+                end
+
+                // Manage fifo count
+                if (fifo_24)
+                begin
+                    // Test for write with no read and not full
+                    if (fifo_write && !fifo_read && fifo_count != 2'h2)
+                        fifo_count <= fifo_count + 1;
+                    // Test for read with no write and not empty
+                    else if (fifo_read && !fifo_write && fifo_count != 2'h0)
+                        fifo_count <= fifo_count - 1;
+                end
+                else if (shift_24 && clk_gate && prism_out_data[OUT_SHIFT] && shift_count == 3'h7)
+                    fifo_count <= fifo_count + 1;
+            end
+        end
+    end
+
+    always @(posedge clk_div2 or negedge rst_n)
+    begin
+        if (!rst_n)
+        begin
+            count1          <= 24'b0;
+            count2          <= 8'b0;
+            fifo_wr_ptr     <= 2'h0;
+            latched_out     <= 2'h0;
+            latched_in      <= 2'h0;
+            shift_count     <= 3'h0;
+        end
+        else
+        begin
             // Countdown to zero counter
             if (prism_exec)
             begin
@@ -274,35 +334,14 @@ module tqvp_prism (
                         fifo_wr_ptr <= fifo_wr_ptr + 1;
                 end
 
-                // Manage fifo read pointer
-                if (fifo_24 && fifo_read && (fifo_count != 2'h0 || fifo_write))
-                begin
-                    // Increment FIFO read pointer
-                    if (fifo_rd_ptr == 2'h2)
-                        fifo_rd_ptr <= 2'h0;
-                    else
-                        fifo_rd_ptr <= fifo_rd_ptr + 1;
-                end
-
-                // Manage fifo count
-                if (fifo_24)
-                begin
-                    // Test for write with no read and not full
-                    if (fifo_write && !fifo_read && fifo_count != 2'h2)
-                        fifo_count <= fifo_count + 1;
-                    // Test for read with no write and not empty
-                    else if (fifo_read && !fifo_write && fifo_count != 2'h0)
-                        fifo_count <= fifo_count - 1;
-                end
-                else if (shift_24 && prism_out_data[OUT_SHIFT] && shift_count == 3'h7)
-                    fifo_count <= fifo_count + 1;
+                latched_out <= uo_out_c;
 
                 // Count the number of shifts
                 if (prism_out_data[OUT_SHIFT])
                 begin
                     shift_count <= shift_count + 1;
                 end
-
+                
                 // 8-bit counter
                 if (prism_out_data[OUT_COUNT2_CLEAR] && !prism_out_data[OUT_COUNT2_INC])
                     count2 <= 8'h0; 
@@ -312,7 +351,6 @@ module tqvp_prism (
                     count2 <= count2 - 1;
                 
                 // Latch the lower 2 outputs
-                latched_out <= prism_out_data[1:0];
                 if (prism_out_data[OUT_LATCH])
                 begin
                     latched_in  <= ui_in[1:0];

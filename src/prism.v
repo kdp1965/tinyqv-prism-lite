@@ -113,6 +113,7 @@ module prism
   (
    // Timing inputs
    input   wire                  clk,              // System clock 
+   input   wire                  clk_div2,         // System clock / 2
    input   wire                  rst_n,            // TRUE when receiving Bit 0
    input   wire                  debug_reset,
    input   wire                  fsm_enable,       // Enable signal
@@ -317,7 +318,7 @@ module prism
    Clocked State Block for state machine SI
    =================================================================================
    */
-   always @(posedge clk)
+   always @(posedge clk_div2)
    begin
       if (~rst_n | debug_reset)
       begin
@@ -350,7 +351,7 @@ module prism
    Logic for loop_si
    =================================================================================
    */
-   always @(posedge clk)
+   always @(posedge clk_div2)
    begin
       if (~rst_n | debug_reset)
       begin
@@ -604,7 +605,7 @@ module prism
                        (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
                        (debug_halt_req & !debug_halt_req_p1);
 
-   always @(posedge clk)
+   always @(posedge clk_div2)
    begin
       if (~rst_n | debug_reset)
       begin
