@@ -28,7 +28,6 @@ module prism_latch_reg
     wire             pre_reset;
 
     /* verilator lint_off PINMISSING */
-    genvar i;
     genvar b;
     generate
         (* keep = 1 *) sky130_fd_sc_hd__and2_1 gate_and (.A(enable), .B(wr), .X(pre_reset));

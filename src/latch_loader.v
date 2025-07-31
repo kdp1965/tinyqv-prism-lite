@@ -51,7 +51,7 @@ module latch_loader #(
             state    <= next_state;
             latch_pulse <= state == SHIFT ? 1'b1 : 1'b0;
             if (state == IDLE && load)
-                index <= DEPTH - 1;
+                index <= (IDX_BITS)'(DEPTH - 1);
             else if (state == NEXT)
                 index <= index - 1;
         end

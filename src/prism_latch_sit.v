@@ -52,7 +52,6 @@ module prism_latch_sit
    // ============================
    input  wire [5:0]             debug_addr,    // Debug address
    input  wire                   debug_wr,      // Active HIGH write strobe
-   input  wire [31:0]            debug_wdata,   // Debug write data
    output reg  [31:0]            debug_rdata,   // Debug read data
 
    // Read addresses and data

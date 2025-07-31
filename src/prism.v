@@ -241,7 +241,6 @@ module prism
 
       // Periph bus interface                           
       .debug_addr            ( debug_addr       ),
-      .debug_wdata           ( debug_wdata      ),
       .debug_rdata           ( debug_rdata_ram  ),
       .debug_wr              ( debug_wr         ),
                                                        
