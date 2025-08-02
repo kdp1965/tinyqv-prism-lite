@@ -43,45 +43,37 @@ module tqvp_prism (
 
     wire                prism_reset;
     wire                prism_enable;
+    wire                prism_exec;
+    wire                prism_halt;
     reg                 prism_halt_r;
     reg                 prism_interrupt;
-    reg   [1:0]         host_in;
     wire                prism_wr;
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
     wire [31:0]         prism_read_data;
+    reg   [1:0]         host_in;
+    wire                ctrl_reg_en;
+    wire                count_reg_en;
     reg  [23:0]         count1;
-    reg   [7:0]         count2;
     wire [23:0]         count1_preload;
+    reg   [7:0]         count2;
     wire  [7:0]         count2_compare;
-//    wire                raw_out;
-    reg   [6:0]         latched_out;
+    wire                count2_dec;
+    wire  [7:0]         uo_out_c;
+    reg   [7:0]         latched_out;
     reg   [1:0]         latched_in;
     reg   [7:0]         comm_data;
     wire  [1:0]         comm_in_sel;
+    wire                comm_in;
+    wire  [3:0]         comm_data_bits;
     wire  [2:0]         cond_out_sel;
     wire  [1:0]         shift_out_sel;
     wire  [3:0]         shift_out;
-//    wire                shift_count_mode;
-//    wire  [4:0]         shift_compare;
+    reg   [2:0]         shift_count;
     wire                shift_dir;
     wire                shift_24;
-    wire                fifo_24;
-    wire                count2_dec;
-    wire                latch_in_out;
-    reg   [2:0]         shift_count;
-    reg   [31:0]        latch_data;
-    reg                 latch_wr;
-    reg                 latch_wr_p0;
-    wire  [6:0]         cond_out_en;
-    wire  [0:0]         cond_out;
-    wire                comm_in;
-    wire  [3:0]         comm_data_bits;
-    wire                prism_halt;
     wire                shift_data;
-    wire                prism_exec;
-    wire                count_reg_en;
-    wire                ctrl_reg_en;
+    wire                fifo_24;
     reg   [1:0]         fifo_wr_ptr;
     reg   [1:0]         fifo_rd_ptr;
     reg   [1:0]         fifo_count;
@@ -90,7 +82,12 @@ module tqvp_prism (
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
     wire                fifo_empty;
-    wire  [6:0]         uo_out_c;
+    wire                latch_in_out;
+    reg   [31:0]        latch_data;
+    reg                 latch_wr;
+    reg                 latch_wr_p0;
+    wire  [6:0]         cond_out_en;
+    wire  [0:0]         cond_out;
     wire                clk_div2;
     reg                 clk_gate;
 
@@ -170,12 +167,10 @@ module tqvp_prism (
     assign uo_out_c[0]   =  prism_out_data[0];
     assign uo_out_c[3:1] = (prism_out_data[3:1] & ~shift_out[3:1] & ~cond_out_en[3:1])   | (cond_out_en[3:1] & {3{cond_out[0]}}) | (shift_out[3:1]   & {3{shift_data}});
     assign uo_out_c[6:4] = (prism_out_data[6:4] & ~cond_out_en[6:4])                     | (cond_out_en[6:4] & {3{cond_out[0]}});
+    assign uo_out_c[0]   = prism_out_data[OUT_LATCH];
 
-    //assign uo_out[1]   = (~raw_out      & latched_out[0])   | (raw_out      & uo_out_c[0]);
-    //assign uo_out[4:2] = ({3{~raw_out}} & latched_out[3:1]) | (comb_out     & uo_out_c[3:1]);
-    //assign uo_out[7:5] = ({2{~raw_out}} & latched_out[6:4]) | ({2{raw_out}} & uo_out_c[6:4]);
-    assign uo_out[7:1] = latched_out;
-    assign uo_out[0]   = prism_out_data[OUT_LATCH];
+    assign uo_out[7:0]   = latched_out;
+//    assign uo_out[0]    = prism_out_data[OUT_LATCH];
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
@@ -184,9 +179,7 @@ module tqvp_prism (
     assign prism_in_data[13:12] = latch_in_out ? {latched_out[6], latched_out[1]} : (latched_in ^ ui_in[1:0]);
     assign prism_in_data[14]    = shift_24 ? ({fifo_count, shift_count} == 5'h0) : (shift_count == 3'h0);
     assign prism_in_data[15]    = count2 == comm_data;
-//    assign shift_compare        = shift_count_mode ? 5'h1F : 5'h0;
 
-    //assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
     assign shift_data = shift_24 ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
     assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & clk_gate;
     assign fifo_read  = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
@@ -212,7 +205,7 @@ module tqvp_prism (
             6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, ui_in[7], count2_dec, fifo_24, shift_24, shift_dir,
                                 latch_in_out,cond_out_sel, shift_out_sel, comm_in_sel,
                                 8'h0,
-                                1'h0, latched_out};
+                                latched_out};
             6'h18:   data_out = {6'h0, host_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {30'h0, fifo_full, fifo_empty};
@@ -392,8 +385,6 @@ module tqvp_prism (
     wire [13:0]   ctrl_bits_in;
     wire [13:0]   ctrl_bits_out;
 
-    //assign ctrl_bits_in[0]     = latch_data[0];       // raw_out
-//    assign ctrl_bits_in[0]     = latch_data[0];       // shift_count_mode
     assign ctrl_bits_in[2:1]   = latch_data[17:16];   // comm_in_sel
     assign ctrl_bits_in[4:3]   = latch_data[19:18];   // shift_out_sel
     assign ctrl_bits_in[7:5]   = latch_data[21:20];   // cond_out_sel
@@ -403,10 +394,8 @@ module tqvp_prism (
     assign ctrl_bits_in[11]    = latch_data[26];      // fifo_24
     assign ctrl_bits_in[12]    = latch_data[27];      // count2_dec
     assign ctrl_bits_in[13]    = latch_data[29];      // PRISM enable
-    assign ctrl_bits_in[0]    = latch_data[30];      // PRISM reset
+    assign ctrl_bits_in[0]     = latch_data[30];      // PRISM reset
 
-//    assign raw_out             = ctrl_bits_out[0];
-//    assign shift_count_mode    = ctrl_bits_out[0];
     assign comm_in_sel         = ctrl_bits_out[2:1];
     assign shift_out_sel       = ctrl_bits_out[4:3];
     assign cond_out_sel        = ctrl_bits_out[7:5];
@@ -448,11 +437,6 @@ module tqvp_prism (
     assign prism_in_data[11] = count2 == count2_compare;
 
     assign user_interrupt = prism_interrupt;
-
-    // List all unused inputs to prevent warnings
-    // data_read_n is unused as none of our behaviour depends on whether
-    // registers are being read.
-    wire _unused = &{data_read_n, 1'b0};
 
 endmodule
 
