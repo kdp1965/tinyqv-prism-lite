@@ -139,7 +139,7 @@ module tqvp_prism (
     );
 
     assign prism_wr = data_write_n != 2'b11;
-    assign prism_exec = prism_enable && !prism_halt;
+    assign prism_exec = prism_enable && !prism_reset && !prism_halt;
 
     genvar i;
     generate
