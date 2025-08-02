@@ -168,12 +168,13 @@ module tqvp_prism (
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
-    assign uo_out_c[0] = prism_out_data[0];
-    assign uo_out_c[3:1] = prism_out_data[3:1];
-    assign uo_out_c[6:4] = (cond_out_en[3:1] & {3{cond_out[0]}}) | (~cond_out_en[3:1] & prism_out_data[6:4]);
+    // NOTE:  prism_out_data[6] is actually OUT_SHIFT, not a dedicated pin_out
+    assign uo_out_c[0]   = prism_out_data[0];
+    assign uo_out_c[3:1] = (~shift_out[3:1]   & prism_out_data[3:1]) | (shift_out[3:1]   & {3{shift_data}});
+    assign uo_out_c[6:4] = (~cond_out_en[3:1] & prism_out_data[6:4]) | (cond_out_en[3:1] & {3{cond_out[0]}});
 
-    assign uo_out[1]   = (~raw_out & latched_out[0]) | (raw_out & prism_out_data[0]);
-    assign uo_out[4:2] = ({3{~raw_out}} & latched_out[3:1]) | (comb_out & uo_out_c[3:1]) | (shift_out[3:1] & {3{shift_data}});
+    assign uo_out[1]   = (~raw_out      & latched_out[0])   | (raw_out      & uo_out_c[0]);
+    assign uo_out[4:2] = ({3{~raw_out}} & latched_out[3:1]) | (comb_out     & uo_out_c[3:1]);
     assign uo_out[7:5] = ({2{~raw_out}} & latched_out[6:4]) | ({2{raw_out}} & uo_out_c[6:4]);
     assign uo_out[0]   = prism_out_data[OUT_LATCH];
     
