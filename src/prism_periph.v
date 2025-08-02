@@ -59,7 +59,7 @@ module tqvp_prism (
     reg   [1:0]         latched_in;
     reg   [7:0]         comm_data;
     wire  [1:0]         comm_in_sel;
-    wire  [1:0]         cond_out_sel;
+    wire  [2:0]         cond_out_sel;
     wire  [1:0]         shift_out_sel;
     wire  [3:0]         shift_out;
     wire                shift_count_mode;
@@ -74,7 +74,7 @@ module tqvp_prism (
     reg   [31:0]        latch_data;
     reg                 latch_wr;
     reg                 latch_wr_p0;
-    wire  [3:0]         cond_out_en;
+    wire  [6:0]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                comm_in;
     wire  [3:0]         comm_data_bits;
@@ -151,7 +151,7 @@ module tqvp_prism (
     generate
     
     // Create Conditional out enable bits
-    for (i = 1; i < 4; i = i + 1)
+    for (i = 1; i < 7; i = i + 1)
     begin : GEN_COND_OUT_EN
         assign cond_out_en[i] = cond_out_sel == i;    
     end
@@ -170,8 +170,8 @@ module tqvp_prism (
     // Assign outputs based on conditional enable or latched enable
     // NOTE:  prism_out_data[6] is actually OUT_SHIFT, not a dedicated pin_out
     assign uo_out_c[0]   =  prism_out_data[0];
-    assign uo_out_c[3:1] = (prism_out_data[3:1] & ~shift_out[3:1])   | (shift_out[3:1]   & {3{shift_data}});
-    assign uo_out_c[6:4] = (prism_out_data[6:4] & ~cond_out_en[3:1]) | (cond_out_en[3:1] & {3{cond_out[0]}});
+    assign uo_out_c[3:1] = (prism_out_data[3:1] & ~shift_out[3:1] & ~cond_out_en[3:1])   | (cond_out_en[3:1] & {3{cond_out[0]}}) | (shift_out[3:1]   & {3{shift_data}});
+    assign uo_out_c[6:4] = (prism_out_data[6:4] & ~cond_out_en[6:4])                     | (cond_out_en[6:4] & {3{cond_out[0]}});
 
     //assign uo_out[1]   = (~raw_out      & latched_out[0])   | (raw_out      & uo_out_c[0]);
     //assign uo_out[4:2] = ({3{~raw_out}} & latched_out[3:1]) | (comb_out     & uo_out_c[3:1]);
@@ -212,7 +212,7 @@ module tqvp_prism (
     begin
         case (address)
             6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, ui_in[7], count2_dec, fifo_24, shift_24, shift_dir,
-                                latch_in_out, 1'b0, cond_out_sel, shift_out_sel, comm_in_sel,
+                                latch_in_out,cond_out_sel, shift_out_sel, comm_in_sel,
                                 1'h0, latched_out,
                                 7'h0, shift_count_mode};
             6'h18:   data_out = {6'h0, host_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
@@ -391,38 +391,38 @@ module tqvp_prism (
     assign ctrl_reg_en  = address == 6'h00;
     assign count_reg_en = address == 6'h20;
 
-    wire [13:0]   ctrl_bits_in;
-    wire [13:0]   ctrl_bits_out;
+    wire [14:0]   ctrl_bits_in;
+    wire [14:0]   ctrl_bits_out;
 
     //assign ctrl_bits_in[0]     = latch_data[0];       // raw_out
     assign ctrl_bits_in[0]     = latch_data[0];       // shift_count_mode
-    assign ctrl_bits_in[3:2]   = latch_data[17:16];   // comm_in_sel
-    assign ctrl_bits_in[5:4]   = latch_data[19:18];   // shift_out_sel
-    assign ctrl_bits_in[7:6]   = latch_data[21:20];   // cond_out_sel
+    assign ctrl_bits_in[2:1]   = latch_data[17:16];   // comm_in_sel
+    assign ctrl_bits_in[4:3]   = latch_data[19:18];   // shift_out_sel
+    assign ctrl_bits_in[7:5]   = latch_data[21:20];   // cond_out_sel
     assign ctrl_bits_in[8]     = latch_data[22];      // latch_in_out
     assign ctrl_bits_in[9]     = latch_data[24];      // shift_dir
     assign ctrl_bits_in[10]    = latch_data[25];      // shift_24
     assign ctrl_bits_in[11]    = latch_data[26];      // fifo_24
     assign ctrl_bits_in[12]    = latch_data[27];      // count2_dec
     assign ctrl_bits_in[13]    = latch_data[29];      // PRISM enable
-    assign ctrl_bits_in[1]     = latch_data[30];      // PRISM reset
+    assign ctrl_bits_in[14]    = latch_data[30];      // PRISM reset
 
 //    assign raw_out             = ctrl_bits_out[0];
     assign shift_count_mode    = ctrl_bits_out[0];
-    assign comm_in_sel         = ctrl_bits_out[3:2];
-    assign shift_out_sel       = ctrl_bits_out[5:4];
-    assign cond_out_sel        = ctrl_bits_out[7:6];
+    assign comm_in_sel         = ctrl_bits_out[2:1];
+    assign shift_out_sel       = ctrl_bits_out[4:3];
+    assign cond_out_sel        = ctrl_bits_out[7:5];
     assign latch_in_out        = ctrl_bits_out[8];
     assign shift_dir           = ctrl_bits_out[9];
     assign shift_24            = ctrl_bits_out[10];
     assign fifo_24             = ctrl_bits_out[11];
     assign count2_dec          = ctrl_bits_out[12];
     assign prism_enable        = ctrl_bits_out[13];
-    assign prism_reset         = ctrl_bits_out[1];
+    assign prism_reset         = ctrl_bits_out[14];
 
     prism_latch_reg
     #(
-        .WIDTH ( 14 )
+        .WIDTH ( 15 )
      )
     ctrl_regs
     (
