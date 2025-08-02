@@ -149,6 +149,8 @@ module prism
    localparam W_DBG_CTRL  = SI_BITS*2 + 4;
    localparam RAM_DEPTH   = DEPTH;
 
+   wire                       prism_rst_n;
+
    // Signal declarations
    reg   [SI_BITS-1:0]        curr_si;         // Current State Index value
    wire  [SI_BITS-1:0]        next_si;         // Next State Index value
@@ -223,6 +225,8 @@ module prism
    */
 
    wire [31:0]             debug_rdata_ram;  // Peripheral read data
+
+   assign prism_rst_n = rst_n & ~debug_reset;
 
    // Instantiate the Latch based SIT
    prism_latch_sit
@@ -317,9 +321,9 @@ module prism
    Clocked State Block for state machine SI
    =================================================================================
    */
-   always @(posedge clk_div2)
+   always @(posedge clk_div2 or negedge prism_rst_n)
    begin
-      if (~rst_n | debug_reset)
+      if (~prism_rst_n)
       begin
          curr_si <= 'h0;
       end
@@ -350,9 +354,9 @@ module prism
    Logic for loop_si
    =================================================================================
    */
-   always @(posedge clk_div2)
+   always @(posedge clk_div2 or negedge prism_rst_n)
    begin
-      if (~rst_n | debug_reset)
+      if (~prism_rst_n)
       begin
          loop_valid <= 1'b0;
          loop_si <= 'h0;
@@ -465,9 +469,9 @@ module prism
    0x3c: input_data
    ===================================================================================== 
    */
-   always @(posedge clk or negedge rst_n)
+   always @(posedge clk or negedge prism_rst_n)
    begin
-      if (~rst_n | debug_reset)
+      if (~prism_rst_n)
       begin
          debug_si    <= {SI_BITS{1'b0}};
       end
@@ -602,9 +606,9 @@ module prism
                        (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
                        (debug_halt_req & !debug_halt_req_p1);
 
-   always @(posedge clk_div2 or negedge rst_n)
+   always @(posedge clk_div2 or negedge prism_rst_n)
    begin
-      if (~rst_n | debug_reset)
+      if (~prism_rst_n)
       begin
          debug_halt <= 1'b0;
          debug_step_pending <= 1'h0;
