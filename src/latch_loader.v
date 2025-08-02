@@ -24,7 +24,7 @@ module latch_loader #(
     reg  [1:0]           state, next_state;
     reg  [IDX_BITS-1:0]  index;
     reg                  latch_pulse;
-    reg  [DEPTH-1:0]     idx_decode;
+    wire [DEPTH-1:0]     idx_decode;
     wire                 msb_enable;
     wire                 load;
 
