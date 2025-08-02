@@ -45,7 +45,7 @@ module tqvp_prism (
     wire                prism_enable;
     reg                 prism_halt_r;
     reg                 prism_interrupt;
-    reg   [1:0]         extra_in;
+    reg   [1:0]         host_in;
     wire                prism_wr;
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
@@ -178,7 +178,7 @@ module tqvp_prism (
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
     assign prism_in_data[7]     = shift_data;
-    assign prism_in_data[9:8]   = extra_in;
+    assign prism_in_data[9:8]   = host_in;
     assign prism_in_data[13:12] = latch_in_out ? {latched_out[6], latched_out[1]} : (latched_in ^ ui_in[1:0]);
     assign prism_in_data[14]    = shift_24 ? ({fifo_count, shift_count} == 5'h0) : (shift_count == 3'h0);
     assign prism_in_data[15]    = count2 == comm_data;
@@ -210,10 +210,10 @@ module tqvp_prism (
                                 latch_in_out, 1'b0, cond_out_sel, shift_out_sel, comm_in_sel,
                                 1'h0, latched_out,
                                 1'h0, latched_ctrl[6:0]};
-            6'h18:   data_out = {6'h0, extra_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
+            6'h18:   data_out = {6'h0, host_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {30'h0, fifo_full, fifo_empty};
-            6'h1B:   data_out = {30'h0, extra_in};
+            6'h1B:   data_out = {30'h0, host_in};
             6'h20:   data_out = {count2_compare, count1_preload};
             6'h24:   data_out = {count2, count1};
             default: data_out = prism_read_data;
@@ -235,7 +235,7 @@ module tqvp_prism (
         begin
             prism_interrupt <= 1'b0;
             prism_halt_r    <= 1'b0;
-            extra_in        <= 2'b0;
+            host_in         <= 2'b0;
             comm_data       <= 8'h0;
             latch_wr        <= 1'b0;
             latch_wr_p0     <= 1'b0;
@@ -267,9 +267,9 @@ module tqvp_prism (
 
             // Test for write to PRISM control bits
             if (address == 6'h18 && data_write_n == 2'b10)
-                extra_in  <= data_in[25:24];
+                host_in  <= data_in[25:24];
             else if (address == 6'h1b && data_write_n == 2'b00)
-                extra_in  <= data_in[1:0];
+                host_in  <= data_in[1:0];
 
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
@@ -331,7 +331,7 @@ module tqvp_prism (
 
                 // Use 24-bit counter as shift-register
                 else if (shift_24 && prism_out_data[OUT_SHIFT])
-                    count1 <= {count1[22:0], comm_in};
+                    count1 <= shift_dir ? {comm_in, count2[23:1]} :  {count1[22:0], comm_in};
 
                 // Use 24-bit counter as 3-byte FIFO
                 else if (fifo_write && (fifo_count != 2'h2 || (fifo_count == 2'h2 && fifo_read)))
