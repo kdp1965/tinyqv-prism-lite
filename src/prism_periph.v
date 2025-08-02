@@ -59,8 +59,8 @@ module tqvp_prism (
     reg   [7:0]         count2;
     wire  [7:0]         count2_compare;
     wire                count2_dec;
-    wire  [7:0]         uo_out_c;
-    reg   [7:0]         latched_out;
+    wire  [6:0]         uo_out_c;
+    reg   [6:0]         latched_out;
     reg   [1:0]         latched_in;
     reg   [7:0]         comm_data;
     wire  [1:0]         comm_in_sel;
@@ -167,10 +167,10 @@ module tqvp_prism (
     assign uo_out_c[0]   =  prism_out_data[0];
     assign uo_out_c[3:1] = (prism_out_data[3:1] & ~shift_out[3:1] & ~cond_out_en[3:1])   | (cond_out_en[3:1] & {3{cond_out[0]}}) | (shift_out[3:1]   & {3{shift_data}});
     assign uo_out_c[6:4] = (prism_out_data[6:4] & ~cond_out_en[6:4])                     | (cond_out_en[6:4] & {3{cond_out[0]}});
-    assign uo_out_c[0]   = prism_out_data[OUT_LATCH];
+//    assign uo_out_c[0]   = prism_out_data[OUT_LATCH];
 
-    assign uo_out[7:0]   = latched_out;
-//    assign uo_out[0]    = prism_out_data[OUT_LATCH];
+    assign uo_out[7:1]   = latched_out;
+    assign uo_out[0]    = prism_out_data[OUT_LATCH];
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
@@ -205,7 +205,7 @@ module tqvp_prism (
             6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, ui_in[7], count2_dec, fifo_24, shift_24, shift_dir,
                                 latch_in_out,cond_out_sel, shift_out_sel, comm_in_sel,
                                 8'h0,
-                                latched_out};
+                                1'b0, latched_out};
             6'h18:   data_out = {6'h0, host_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {30'h0, fifo_full, fifo_empty};
@@ -327,7 +327,7 @@ module tqvp_prism (
 
                 // Use 24-bit counter as shift-register
                 else if (shift_24 && prism_out_data[OUT_SHIFT])
-                    count1 <= shift_dir ? {comm_in, count2[23:1]} :  {count1[22:0], comm_in};
+                    count1 <= shift_dir ? {comm_in, count1[23:1]} :  {count1[22:0], comm_in};
 
                 // Use 24-bit counter as 3-byte FIFO
                 else if (fifo_write && (fifo_count != 2'h2 || (fifo_count == 2'h2 && fifo_read)))
