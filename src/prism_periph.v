@@ -173,14 +173,13 @@ module tqvp_prism (
     assign uo_out[1]   = (latched_ctrl[0] & latched_out[0]) | (~latched_ctrl[0] & prism_out_data[0]);
     assign uo_out[4:2] = (latched_ctrl[3:1] & latched_out[3:1]) | (comb_out & uo_out_c[3:1]) | (shift_out[3:1] & {3{shift_data}});
     assign uo_out[7:5] = (latched_ctrl[6:4] & latched_out[6:4]) | (~latched_ctrl[6:4] & uo_out_c[6:4]);
-//    assign uo_out[7]   = uo_out_c[6];
-    assign uo_out[0] = 1'b0;
+    assign uo_out[0]   = prism_out_data[OUT_LATCH];
     
     // Assign the PRISM intput data
     assign prism_in_data[6:0]   = ui_in[6:0];
     assign prism_in_data[7]     = shift_data;
     assign prism_in_data[9:8]   = extra_in;
-    assign prism_in_data[13:12] = latch_in_out ? latched_out[1:0] : (latched_in ^ ui_in[1:0]);
+    assign prism_in_data[13:12] = latch_in_out ? {latched_out[6], latched_out[1]} : (latched_in ^ ui_in[1:0]);
     assign prism_in_data[14]    = shift_24 ? ({fifo_count, shift_count} == 5'h0) : (shift_count == 3'h0);
     assign prism_in_data[15]    = count2 == comm_data;
 
@@ -210,7 +209,7 @@ module tqvp_prism (
             6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, ui_in[7], count2_dec, fifo_24, shift_24, shift_dir,
                                 latch_in_out, 1'b0, cond_out_sel, shift_out_sel, comm_in_sel,
                                 1'h0, latched_out,
-                                2'h0, latched_ctrl[5:0]};
+                                1'h0, latched_ctrl[6:0]};
             6'h18:   data_out = {6'h0, extra_in, 6'h0, fifo_full, fifo_empty, fifo_rd_data, comm_data};
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {30'h0, fifo_full, fifo_empty};
@@ -387,8 +386,8 @@ module tqvp_prism (
     assign ctrl_reg_en  = address == 6'h00;
     assign count_reg_en = address == 6'h20;
 
-    wire [18:0]   ctrl_bits_in;
-    wire [18:0]   ctrl_bits_out;
+    wire [19:0]   ctrl_bits_in;
+    wire [19:0]   ctrl_bits_out;
 
     assign ctrl_bits_in[5:0]   = latch_data[5:0];     // latched_ctrl
     assign ctrl_bits_in[7:6]   = latch_data[17:16];   // comm_in_sel
@@ -401,9 +400,10 @@ module tqvp_prism (
     assign ctrl_bits_in[13]    = latch_data[27];      // count2_dec
     assign ctrl_bits_in[14]    = latch_data[29];      // PRISM enable
     assign ctrl_bits_in[15]    = latch_data[30];      // PRISM reset
+    assign ctrl_bits_in[19]    = latch_data[6];       // latched_ctrl
 
     assign latched_ctrl[5:0]   = ctrl_bits_out[5:0];
-    assign latched_ctrl[6]     = 1'b1;
+    assign latched_ctrl[6]     = ctrl_bits_out[19];
     assign comm_in_sel         = ctrl_bits_out[7:6];
     assign cond_out_sel        = ctrl_bits_out[9:8];
     assign shift_dir           = ctrl_bits_out[10];
@@ -417,7 +417,7 @@ module tqvp_prism (
 
     prism_latch_reg
     #(
-        .WIDTH ( 19 )
+        .WIDTH ( 20 )
      )
     ctrl_regs
     (
