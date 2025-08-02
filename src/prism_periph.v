@@ -149,15 +149,16 @@ module tqvp_prism (
     generate
     
     // Create Conditional out enable bits
-    for (i = 0; i < 7; i = i + 1)
+    for (i = 1; i < 7; i = i + 1)
     begin : GEN_COND_OUT_EN
         assign cond_out_en[i] = cond_out_sel == i;    
     end
+    assign cond_out_en[0] = 1'b0;
 
     // Create shift out enable bits
     for (i = 0; i < 4; i = i + 1)
     begin : GEN_SHIFTS_OUT_EN
-        assign shift_out[i] = shift_out_sel == i;    
+        assign shift_out[i] = i == 0 ? 1'b0 : shift_out_sel == i;    
         assign comb_out[i]  = ~shift_out[i] & ~latched_ctrl[i];    
     end
 
@@ -165,7 +166,8 @@ module tqvp_prism (
 
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
-    assign uo_out_c[5:0] = (cond_out_en[5:0] & {6{cond_out[0]}}) | (~cond_out_en[5:0] & prism_out_data[5:0]);
+    assign uo_out_c[0] = prism_out_data[0];
+    assign uo_out_c[5:1] = (cond_out_en[5:1] & {5{cond_out[0]}}) | (~cond_out_en[5:1] & prism_out_data[5:1]);
 
     assign uo_out[4:1] = (latched_ctrl[3:0] & latched_out[3:0]) | (comb_out & uo_out_c[3:0]) | (shift_out & {4{shift_data}});
     assign uo_out[6:5] = (latched_ctrl[5:4] & latched_out[5:4]) | (~latched_ctrl[5:4] & uo_out_c[5:4]);
