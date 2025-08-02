@@ -465,7 +465,7 @@ module prism
    0x3c: input_data
    ===================================================================================== 
    */
-   always @(posedge clk)
+   always @(posedge clk or negedge rst_n)
    begin
       if (~rst_n | debug_reset)
       begin
@@ -602,7 +602,7 @@ module prism
                        (debug_bp_en1 && !debug_break_active[1] && !debug_resume_pending && (debug_bp_si1 == next_si)) ||
                        (debug_halt_req & !debug_halt_req_p1);
 
-   always @(posedge clk_div2)
+   always @(posedge clk_div2 or negedge rst_n)
    begin
       if (~rst_n | debug_reset)
       begin
