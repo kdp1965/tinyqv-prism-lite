@@ -212,7 +212,7 @@ module tqvp_prism (
     always @*
     begin
         case (address)
-            6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, shift_en, count2_dec, fifo_24, shift_24_en, shift_dir,
+            6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, count2_dec, fifo_24, shift_24_en, shift_dir, shift_en,
                                 latch_in_out, cond_out_sel, shift_out_sel, comm_in_sel,
                                 7'h0, ui_in[7],
                                 1'b0, latched_out};
@@ -263,7 +263,7 @@ module tqvp_prism (
             prism_halt_r <= prism_halt;
             
             if ((prism_halt && !prism_halt_r) | (prism_out_data[OUT_COUNT2_CLEAR] & prism_out_data[OUT_COUNT2_INC])) begin
-                prism_interrupt <= 1;
+                prism_interrupt <= ~prism_reset;
             end else if (address == 6'h0 && prism_wr)
             begin
                 // Test for interrupt clear
@@ -397,13 +397,13 @@ module tqvp_prism (
 
     assign ctrl_bits_in[2:1]   = latch_data[17:16];   // comm_in_sel
     assign ctrl_bits_in[4:3]   = latch_data[19:18];   // shift_out_sel
-    assign ctrl_bits_in[7:5]   = latch_data[21:20];   // cond_out_sel
-    assign ctrl_bits_in[8]     = latch_data[22];      // latch_in_out
-    assign ctrl_bits_in[14]    = latch_data[23];      // shift_en
-    assign ctrl_bits_in[9]     = latch_data[24];      // shift_dir
-    assign ctrl_bits_in[10]    = latch_data[25];      // shift_24_en
-    assign ctrl_bits_in[11]    = latch_data[26];      // fifo_24
-    assign ctrl_bits_in[12]    = latch_data[27];      // count2_dec
+    assign ctrl_bits_in[7:5]   = latch_data[22:20];   // cond_out_sel
+    assign ctrl_bits_in[8]     = latch_data[23];      // latch_in_out
+    assign ctrl_bits_in[14]    = latch_data[24];      // shift_en
+    assign ctrl_bits_in[9]     = latch_data[25];      // shift_dir
+    assign ctrl_bits_in[10]    = latch_data[26];      // shift_24_en
+    assign ctrl_bits_in[11]    = latch_data[27];      // fifo_24
+    assign ctrl_bits_in[12]    = latch_data[28];      // count2_dec
     assign ctrl_bits_in[13]    = latch_data[29];      // PRISM enable
     assign ctrl_bits_in[0]     = latch_data[30];      // PRISM reset
 

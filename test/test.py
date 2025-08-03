@@ -60,53 +60,64 @@ async def test_project(dut):
     await tqv.write_word_reg(0x14, 0x00008080)
     await tqv.write_word_reg(0x10, 0x80808080)
 
-#    await tqv.write_word_reg(0x14, 0x00009090)
-#    await tqv.write_word_reg(0x10, 0x90909090)
-
-#    await tqv.write_word_reg(0x14, 0x0000a0a0)
-#    await tqv.write_word_reg(0x10, 0xa0a0a0a0)
-
-#    await tqv.write_word_reg(0x14, 0x0000b0b0)
-#    await tqv.write_word_reg(0x10, 0xb0b0b0b0)
-
-#    await tqv.write_word_reg(0x14, 0x0000c0c0)
-#    await tqv.write_word_reg(0x10, 0xc0c0c0c0)
-
-
     # Wait for two clock cycles to see the output values, because ui_in is synchronized over two clocks,
     # and a further clock is required for the output to propagate.
     await ClockCycles(dut.clk, 3)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-#    assert dut.uo_out.value == 0x96
-
-    # Input value should be read back from register 1
-#    assert await tqv.read_byte_reg(4) == 30
-
     # 0x10101010 should be read back from register 8
     assert await tqv.read_word_reg(0x10) == 0x10101010
 
-    # Zero should be read back from register 2
-#    assert await tqv.read_word_reg(16) == 0
 
-    # A second write should work
-#    await tqv.write_word_reg(0, 40)
-#    assert dut.uo_out.value == 70
+    # ===========================================================
+    # Okay, now load up a real design and see if it does anything
+    # This is the 24-Bit GPIO Chroma
+    # ===========================================================
+    await tqv.write_word_reg(0x14, 0x03c0 )
+    await tqv.write_word_reg(0x10, 0x08000000)
 
-    # Test the interrupt, generated when ui_in[6] goes high
-#    dut.ui_in[6].value = 1
-#    await ClockCycles(dut.clk, 1)
-#    dut.ui_in[6].value = 0
+    await tqv.write_word_reg(0x14, 0x03c0 )
+    await tqv.write_word_reg(0x10, 0x08000000)
 
-    # Interrupt asserted
-#    await ClockCycles(dut.clk, 3)
-#    assert dut.uio_out[0].value == 1
+    await tqv.write_word_reg(0x14, 0x0140 )
+    await tqv.write_word_reg(0x10, 0x08010010)
 
-    # Interrupt doesn't clear
-#    await ClockCycles(dut.clk, 10)
-#    assert dut.uio_out[0].value == 1
+    await tqv.write_word_reg(0x14, 0x0bc0 )
+    await tqv.write_word_reg(0x10, 0x0800b200)
+
+    await tqv.write_word_reg(0x14, 0x03c0 )
+    await tqv.write_word_reg(0x10, 0x08008000)
+
+    await tqv.write_word_reg(0x14, 0x0140 )
+    await tqv.write_word_reg(0x10, 0x0801201d)
+
+    await tqv.write_word_reg(0x14, 0x0280 )
+    await tqv.write_word_reg(0x10, 0x0841401a)
+
+    await tqv.write_word_reg(0x14, 0x0280 )
+    await tqv.write_word_reg(0x10, 0x08002010)
+
+    assert await tqv.read_word_reg(0x14) == 0x03c0
+    assert await tqv.read_word_reg(0x10) == 0x08000000
+
+    # Now program the PRISM peripheral configuration registers
+    await tqv.write_word_reg(0x0, 0x67980000)
+    assert await tqv.read_word_reg(0x0) == 0x67980000
+
+#  1. com_in_sel    = 0 (Shift input data on ui_in[0])
+#  2. shift_24_le   = 1 (Enable 24-bit shift)
+#  3. shift_en      = 1 (Enable shift operation)
+#  4. shift_dir     = 1 (LSB first)
+#  5. shift_out_sel = 2 (Route shift_data to uo_out[3])
+#  6. fifo_24       = 0 (Not using 24-bit reg as FIFO)
+#  7. latch_in_out  = 1 (Readback latched out data [6:1])
+#  8. cond_sel      = 1 (Route cond_out to uo_out[2])
     
-    # Write bottom bit of address 8 high to clear
-#    await tqv.write_byte_reg(8, 1)
-#    assert dut.uio_out[0].value == 0
+    
+
+
+
+
+
+
+
+
