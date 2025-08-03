@@ -72,8 +72,6 @@ async def test_project(dut):
     # Okay, now load up a real design and see if it does anything
     # This is the 24-Bit GPIO Chroma
     # ===========================================================
-    await tqv.write_word_reg(0x14, 0x03c0 )
-    await tqv.write_word_reg(0x10, 0x08000000)
 
     await tqv.write_word_reg(0x14, 0x03c0 )
     await tqv.write_word_reg(0x10, 0x08000000)
@@ -82,26 +80,46 @@ async def test_project(dut):
     await tqv.write_word_reg(0x10, 0x08010010)
 
     await tqv.write_word_reg(0x14, 0x0bc0 )
-    await tqv.write_word_reg(0x10, 0x0800b200)
+    await tqv.write_word_reg(0x10, 0x0800d200)
 
     await tqv.write_word_reg(0x14, 0x03c0 )
-    await tqv.write_word_reg(0x10, 0x08008000)
+    await tqv.write_word_reg(0x10, 0x0800a000)
 
     await tqv.write_word_reg(0x14, 0x0140 )
-    await tqv.write_word_reg(0x10, 0x0801201d)
+    await tqv.write_word_reg(0x10, 0x0801401d)
 
-    await tqv.write_word_reg(0x14, 0x0280 )
-    await tqv.write_word_reg(0x10, 0x0841401a)
+    await tqv.write_word_reg(0x14, 0x0280)
+    await tqv.write_word_reg(0x10, 0x0841601a)
 
-    await tqv.write_word_reg(0x14, 0x0280 )
-    await tqv.write_word_reg(0x10, 0x08002010)
+    await tqv.write_word_reg(0x14, 0x03c0)
+    await tqv.write_word_reg(0x10, 0x08004000)
+
+    await tqv.write_word_reg(0x14, 0x0288)
+    await tqv.write_word_reg(0x10, 0x00012010)
 
     assert await tqv.read_word_reg(0x14) == 0x03c0
     assert await tqv.read_word_reg(0x10) == 0x08000000
 
     # Now program the PRISM peripheral configuration registers
-    await tqv.write_word_reg(0x0, 0x67980000)
-    assert await tqv.read_word_reg(0x0) == 0x67980000
+    await tqv.write_word_reg(0x0, 0x65980000)
+    assert await tqv.read_word_reg(0x0) == 0x65980000
+
+    # Now release PRISM from reset
+    await tqv.write_word_reg(0x0, 0x25980000)
+
+    # Put 24-bit OUTPUT data in the 24-bit Shift register
+    await tqv.write_word_reg(0x20, 0x00F05077)
+
+    # Set an input value in the testbench
+    dut.input_value = 0x00BEEF
+
+    # Start a transfer
+    await tqv.write_word_reg(0x18, 0x03000000)
+    await tqv.write_word_reg(0x18, 0x00000000)
+
+    # See if we got the input value
+    assert await tqv.read_word_reg(0x24) == 0x0000BEEF
+    assert dut.output_value == 0x00F05077
 
 #  1. com_in_sel    = 0 (Shift input data on ui_in[0])
 #  2. shift_24_le   = 1 (Enable 24-bit shift)

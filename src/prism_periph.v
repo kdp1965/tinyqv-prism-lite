@@ -99,7 +99,7 @@ module tqvp_prism (
     // =============================================================
     // Crate a divide by 2 clock using clock gate
     // =============================================================
-    always @(posedge clk or negedge rst_n)
+    always @(negedge clk or negedge rst_n)
     begin
         if (~rst_n)
             clk_gate <= 1'b0;
@@ -181,11 +181,11 @@ module tqvp_prism (
     assign prism_in_data[7]     = shift_data;
     assign prism_in_data[9:8]   = host_in;
     assign prism_in_data[13:12] = latch_in_out ? {latched_out[6], latched_out[1]} : (latched_in ^ ui_in[1:0]);
-    assign prism_in_data[14]    = shift_24_en ? ({fifo_count, shift_count} == 5'h0) : (shift_count == 3'h0);
+    assign prism_in_data[14]    = shift_24_en ? ({fifo_count, shift_count} == 5'b0) : (shift_count == 3'h0);
     assign prism_in_data[15]    = count2 == comm_data;
 
     assign shift_data = shift_24_en ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
-    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & clk_gate;
+    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & ~clk_gate;
     assign fifo_read  = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
     assign fifo_full  = fifo_24 && fifo_count == 2'h2;
     assign fifo_empty = fifo_24 && fifo_count == 2'h0;
@@ -280,7 +280,7 @@ module tqvp_prism (
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
                 comm_data <= data_in[7:0];
-            else if (prism_exec && shift_8 && clk_gate)
+            else if (prism_exec && shift_8 && ~clk_gate)
                 comm_data <= shift_dir ? {comm_in, comm_data[7:1]}: {comm_data[6:0], comm_in};
 
             if (prism_exec)
@@ -306,7 +306,7 @@ module tqvp_prism (
                         fifo_count <= fifo_count - 1;
                 end
                 else if (shift_24 && clk_gate && shift_count == 3'h7)
-                    fifo_count <= fifo_count + 1;
+                    fifo_count <= fifo_count == 2'h2 ? 2'h0 : fifo_count + 1;
             end
         end
     end
