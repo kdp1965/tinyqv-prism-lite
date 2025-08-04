@@ -6,7 +6,7 @@ current_design tt_um_tqv_peripheral_harness
 create_clock -name clk -period 15.6250 [get_ports {clk}]
 set_clock_transition 0.1500 [get_clocks {clk}]
 set_clock_uncertainty 0.2500 clk
-create_generated_clock -name clk_div2 -source [get_ports clk] -divide_by 2 [get_pins user_peripheral.GC/GCLK]
+create_generated_clock -name clk_div2 -source [get_ports clk] -divide_by 2 [get_pins user_peripheral.CG/GCLK]
 set_input_delay 6.0000 -clock [get_clocks {clk}] -add_delay [get_ports {ena}]
 set_input_delay 6.0000 -clock [get_clocks {clk}] -add_delay [get_ports {rst_n}]
 set_input_delay 6.0000 -clock [get_clocks {clk}] -add_delay [get_ports {ui_in[0]}]
