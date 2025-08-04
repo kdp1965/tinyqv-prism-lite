@@ -17,7 +17,7 @@ module tb ();
   reg clk;
   reg rst_n;
   reg ena;
-  wire [7:0] ui_in;
+  reg [7:0] ui_in;
   reg [7:0] uio_in;
   wire [7:0] uo_out;
   wire [7:0] uio_out;
@@ -54,52 +54,5 @@ module tb ();
       .clk    (clk),      // clock
       .rst_n  (rst_n)     // not reset
   );
-
-  /*
-  ================================================================================
-   Implement the 74165 "Input shift registers"
-  ================================================================================
-  */
-  reg [23:0]   input_value;
-  reg [23:0]   input_shift;
-
-  initial begin
-      input_value = 'h0;
-  end
-
-  always @(posedge uo_out[7] or negedge uo_out[1])
-  begin
-      if (!uo_out[1])
-      begin
-         input_shift <= input_value;
-      end
-      else
-      begin
-         input_shift <= {input_shift[22:0], 1'b0};   
-      end
-  end
-
-  assign ui_in[0] = input_shift[23];
-
-  /*
-  ================================================================================
-   Implement the 74595 "Output shift registers"
-  ================================================================================
-  */
-  reg [23:0]   output_value;
-  reg [23:0]   output_shift;
-
-
-  always @(posedge uo_out[7] or posedge uo_out[2])
-  begin
-      if (uo_out[2])
-      begin
-         output_value <= output_shift;
-      end
-      else
-      begin
-         output_shift <= {output_shift[22:0], uo_out[3]};   
-      end
-  end
 
 endmodule

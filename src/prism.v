@@ -1,5 +1,5 @@
-// (c) Copyright Ken Pettit
-//         All Rights Reserved
+// Copyright (c) Ken Pettit
+// SPDX-License-Identifier: Apache-2.0
 // ------------------------------------------------------------------------------
 //
 //  File        : prism.sv
@@ -168,7 +168,7 @@ module prism
    wire  [OUTPUTS-1:0]        jump_outputs  [ DUAL_COMPARE:0 ]; // Jumpto transition Output values
 
    // RAM interface signals for SI control
-   wire  [SI_BITS-1:0]        jump_to [ DUAL_COMPARE:0 ];      // SI Jump to address
+   wire  [SI_BITS-1:0]        jump_to [ DUAL_COMPARE:0 ];    // SI Jump to address
    wire                       inc_si ;                       // SI Inc signal
 
    // Compare signals from RAM
@@ -191,7 +191,7 @@ module prism
    // Memory control signals
    wire  [RAM_WIDTH-1:0]      ram_dout;
    wire  [RA_BITS-1:0]        ram_raddr1;
-   wire  [RAM_WIDTH-1:0]      stew;           // State Execution Word
+   wire  [RAM_WIDTH-1:0]      stew;               // State Execution Word
 
    // PRISM readback data (SI, etc.)
    reg  [31:0]                debug_rdata_prism;  // Peripheral read data
@@ -269,7 +269,7 @@ module prism
    localparam CMP_SEL_START   = OUTPUTS_START  + OUTPUTS*(DUAL_COMPARE+2); 
    localparam COND_START      = CMP_SEL_START  + CMP_SEL_SIZE*(DUAL_COMPARE+1);
 
-//`ifdef DEBUG_PRISM_STEW
+`ifdef DEBUG_PRISM_STEW
    initial begin
       $display("RAM_WIDTH       = %d", RAM_WIDTH);
       $display("RAM_DEPTH       = %d", RAM_DEPTH);
@@ -280,7 +280,7 @@ module prism
       $display("COND_START      = %d", COND_START);
       $display("W_ADDR          = %d", W_ADDR);
    end
-//`endif
+`endif
 
    // Assign stew either as registered or non-registered ram_dout
    assign stew = ram_dout[RAM_WIDTH-1:0];

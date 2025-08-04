@@ -1,7 +1,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
 
 from tqv import TinyQV
 
@@ -12,6 +12,60 @@ async def test_project(dut):
     # Set the clock period to 100 ns (10 MHz)
     clock = Clock(dut.clk, 100, units="ns")
     cocotb.start_soon(clock.start())
+
+    # Setup simulated external devices
+    input_value = 0xA5A5A5  # whatever test value you want
+    output_shift = 0
+    output_value = 0
+    input_shift = input_value
+
+    async def simulate_74165():
+        nonlocal input_shift
+        val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+        prev_val = int(val_str, 2)
+        while True:
+            # Wait for rising edge of uo_out[7] (shift clock)
+            await RisingEdge(dut.clk)
+
+            # Get uo_out as an integer safely ('x' -> 0)
+            val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+            curr_val = int(val_str, 2)
+
+            # Check for clear or clock
+            if curr_val & 2 == 0:
+                # Load new value
+                input_shift = input_value
+            elif ((prev_val ^ curr_val) & (1 << 7)) and (curr_val & (1 << 7)):
+                # Shift left
+                input_shift = (input_shift << 1) & 0xFFFFFF
+            prev_val = curr_val
+
+            # Set ui_in[0] to MSB
+            dut.ui_in[0].value = (input_shift >> 23) & 1
+
+    async def simulate_74595():
+        nonlocal output_shift, output_value
+        val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+        prev_val = int(val_str, 2)
+
+        while True:
+            # Wait for either posedge uo_out[7] (shift clk) or posedge uo_out[2] (store)
+            await RisingEdge(dut.clk)
+
+            val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+            curr_val = int(val_str, 2)
+            if curr_val & 4 != 0:
+                # On store, latch output
+                output_value = output_shift
+            elif ((prev_val ^ curr_val) & (1 << 7)) and (curr_val & (1 << 7)):
+                # On shift, shift in from uo_out[3]
+                bit = int(dut.uo_out[3].value)
+                output_shift = ((output_shift << 1) | bit) & 0xFFFFFF
+            prev_val = curr_val
+
+    # Start the simulations
+    cocotb.start_soon(simulate_74165())
+    cocotb.start_soon(simulate_74595())
 
     # Interact with your design's registers through this TinyQV class.
     # This will allow the same test to be run when your design is integrated
@@ -111,7 +165,7 @@ async def test_project(dut):
     await tqv.write_word_reg(0x20, 0x00F05077)
 
     # Set an input value in the testbench
-    dut.input_value = 0x00BEEF
+    input_value = 0x00BEEF
 
     # Start a transfer
     await tqv.write_word_reg(0x18, 0x03000000)
@@ -119,7 +173,7 @@ async def test_project(dut):
 
     # See if we got the input value
     assert await tqv.read_word_reg(0x24) == 0x0000BEEF
-    assert dut.output_value == 0x00F05077
+    assert output_value == 0x00F05077
 
 #  1. com_in_sel    = 0 (Shift input data on ui_in[0])
 #  2. shift_24_le   = 1 (Enable 24-bit shift)

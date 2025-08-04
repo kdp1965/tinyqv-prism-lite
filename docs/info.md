@@ -30,15 +30,18 @@ Document the registers that are used to interact with your peripheral
 | Address | Name  | Access | Description                                                         |
 |---------|-------|--------|---------------------------------------------------------------------|
 | 0x00    | CTRL  | R/W    | Control register - see [CTRL Register](#ctrl-register-0x00) below |
-| 0x18    | HOST_DATA | R/W | Host data register - see [HOST_DATA Register](#host_data-register-0x18) below |
-| 0x19    | FIFO_DATA | R | FIFO read data register - see [HOST_DATA Register](#host_data-register-0x18) below |
-| 0x1A    | FIFO_STATUS | R | FIFO status register - see [HOST_DATA Register](#host_data-register-0x18) below |
-| 0x1B    | HOST_IN | R/W | Host input register - see [HOST_DATA Register](#host_data-register-0x18) below |
-| 0x20    | COUNT_CONFIG | R/W | Counter configuration register - see [COUNT_CONFIG Register](#count_config-register-0x20) below |
-| 0x24    | COUNT_VALUES | R | Counter values register - see [COUNT_VALUES Register](#count_values-register-0x24) below |
-| 0x10    | LOAD_CTRL | W | Load control register (latch_loader) |
-| 0x14    | MSB_ENABLE | W | MSB enable register (latch_loader) |
-| 0x28    | COUNT1_PRELOAD | W | Count1 preload register (gds peripheral) |
+| 0x10    | CFG_LSB | W | Config LSB register (write second) |
+| 0x14    | CFG_MSB | W | Config MSB register (write first) |
+| 0x18    | HOST_DATA | R/W | Host data register - see [HOST_DATA Register](#host_data-register-0x18) |
+| 0x19    | FIFO_DATA | R | FIFO read data register - see [HOST_DATA Register](#host_data-register-0x18) |
+| 0x1A    | FIFO_STAT | R | FIFO status register - see [HOST_DATA Register](#host_data-register-0x18) |
+| 0x1B    | HOST_IN | R/W | Host input register - see [HOST_DATA Register](#host_data-register-0x18) |
+| 0x20    | COUNT_CFG | R/W | Counter config register - see [COUNT_CONFIG Register](#count_config-register-0x20) |
+| 0x24    | COUNT_VAL | R | Counter values register - see [COUNT_VALUES Register](#count_values-register-0x24) |
+| 0x30    | DEBUG_CTRL | R | Debug control bits register |
+| 0x34    | DECISION_TREE | R | Decision tree data register |
+| 0x38    | OUTPUT_DATA | R | Output data register |
+| 0x3C    | INPUT_DATA | R | Input data register |
 
 ### Bit-field Details
 
@@ -79,15 +82,41 @@ Document the registers that are used to interact with your peripheral
 
 | Bit(s) | Name | Description |
 |--------|------|-------------|
-| 31-8 | count2_compare | Compare value for count2 |
-| 7-0 | count1_preload | Preload value for 24-bit counter |
+| 31-24 | count2_compare | Compare value for 8-bit count2 |
+| 23-0 | count1_preload | Preload value for 24-bit count1 |
 
 #### COUNT_VALUES Register (0x24)
 
 | Bit(s) | Name | Description |
 |--------|------|-------------|
-| 31-8 | count2 | Current value of 8-bit counter |
-| 7-0 | count1 | Current value of 24-bit counter |
+| 31-24 | count2 | Current value of 8-bit counter |
+| 23-0 | count1 | Current value of 24-bit counter |
+
+#### DEBUG_OUT Register (0x30)
+
+| Bit(s) | Name | Description |
+|--------|------|-------------|
+| 31-0 | debug_output_bits | Debug output bits from PRISM state machine |
+
+#### DECISION_TREE Register (0x34)
+
+| Bit(s) | Name | Description |
+|--------|------|-------------|
+| 31-0 | decision_tree_data | Decision tree data including compare matches and LUT inputs |
+
+#### OUTPUT_DATA Register (0x38)
+
+| Bit(s) | Name | Description |
+|--------|------|-------------|
+| 31-11 | Reserved | Reserved bits |
+| 10-0 | out_data | Current output data from PRISM state machine |
+
+#### INPUT_DATA Register (0x3C)
+
+| Bit(s) | Name | Description |
+|--------|------|-------------|
+| 31-16 | Reserved | Reserved bits |
+| 15-0 | in_data | Current input data to PRISM state machine |
 
 ## How to test
 

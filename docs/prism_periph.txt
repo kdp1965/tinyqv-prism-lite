@@ -45,5 +45,5 @@
                  +------------------------------------------------------------------------------------------------------+ 
        
 
-{:FILE theme light scale 0.4 font-size 12}
+{:FILE theme light scale 1.0 font-size 12}
 {:MUX fill pr}

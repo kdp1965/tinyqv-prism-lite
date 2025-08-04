@@ -1,13 +1,53 @@
-/*
- * Copyright (c) 2025 Your Name
- * SPDX-License-Identifier: Apache-2.0
- */
+// Copyright (c) 2025 Ken Pettit
+// SPDX-License-Identifier: Apache-2.0
+//
+// Description:  
+// ------------------------------------------------------------------------------
+//
+//    This is a Programmable Reconfigurable Indexed State Machine (PRISM)
+//    peripheral for the TinyQV RISC-V processor.
+//
+//                        /\           
+//                       /  \           
+//                   ..-/----\-..       
+//               --''  /      \  ''--   
+//                    /________\        
+//
+//
+//        
+//   +----------------+                                  
+//   |                |    +------------------------+                 +----------+
+//   |                |    |  24-bit Register       |                 | 24-bit   |
+//   |                |<-->|                        |<----------------+ preload/ |
+//   |                |    |  counter/shifter/FIFO  +-------+         | load     |
+//   |     PRISM      |    +-------------------+----+       v         +----------+
+//   |                |                        |           .-.        
+//   |    8-state     |<-----------------------|----------+ = |<------zero
+//   |  programmable  |      +--------------+  |           '-'                     
+//   |      FSM       |      |    5-bit     |<-+                                   
+//   |                |      | Shift Count  |                                      
+//   |                |<-----+eq_zero       |<-+                                   
+//   |                |      +--------------+  |                                   
+//   |                |                        |
+//   |                |    +-------------------+----+                              
+//   |                |    |   8-bit Comm Register  |                              
+//   |                |<-->|                        +-----------------+             
+//   |                |    |  load / shfit / read   |                 |             
+//   |                |    +------------------------+                 |             
+//   |                |                                               |            
+//   |                |    +------------------------+             /|  |               
+//   |                |    |   8-bit Up/Down counter|      .-.   | +--+ +----------+  
+//   |                |<-->|                        |---->| = |<-| |    |  8-bit   |  
+//   |                |    |   counter/shifter      |      '+'   | +----+ compare  |  
+//   |                |    +------------------------+       |     \|    |          |  
+//   |                |                                     |           +----------+  
+//   |                |<------------------------------------+                       
+//   +----------------+                                                            
+//                   
+// ------------------------------------------------------------------------------
 
 `default_nettype none
 
-// Change the name of this module to something that reflects its functionality and includes your name for uniqueness
-// For example tqvp_yourname_spi for an SPI peripheral.
-// Then edit tt_wrapper.v line 41 and change tqvp_example to your chosen module name.
 module tqvp_prism (
     input             clk,          // Clock - the TinyQV project clock is normally set to 64MHz.
     input             rst_n,        // Reset_n - low to reset.
@@ -39,7 +79,6 @@ module tqvp_prism (
     localparam  OUT_COUNT1_LOAD     = 8;
     localparam  OUT_COUNT2_INC      = 9;
     localparam  OUT_COUNT2_CLEAR    = 10;
-//    localparam  OUT_LATCH           = 11;
 
     wire                prism_reset;
     wire                prism_enable;
@@ -68,7 +107,7 @@ module tqvp_prism (
     wire  [3:0]         comm_data_bits;
     wire  [2:0]         cond_out_sel;
     wire  [1:0]         shift_out_sel;
-    wire  [3:0]         shift_out;
+    wire  [3:1]         shift_out;
     reg   [2:0]         shift_count;
     wire                shift_dir;
     wire                shift_24_en;
@@ -91,7 +130,7 @@ module tqvp_prism (
     reg   [31:0]        latch_data;
     reg                 latch_wr;
     reg                 latch_wr_p0;
-    wire  [6:0]         cond_out_en;
+    wire  [6:1]         cond_out_en;
     wire  [0:0]         cond_out;
     wire                clk_div2;
     reg                 clk_gate;
@@ -156,10 +195,9 @@ module tqvp_prism (
     begin : GEN_COND_OUT_EN
         assign cond_out_en[i] = cond_out_sel == i;    
     end
-    assign cond_out_en[0] = 1'b0;
 
     // Create shift out enable bits
-    for (i = 0; i < 4; i = i + 1)
+    for (i = 1; i < 4; i = i + 1)
     begin : GEN_SHIFTS_OUT_EN
         assign shift_out[i] = i == 0 ? 1'b0 : shift_out_sel == i;    
     end

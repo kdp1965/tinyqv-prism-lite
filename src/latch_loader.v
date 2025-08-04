@@ -1,4 +1,26 @@
-module latch_loader #(
+// Copyright (c) 2025 Ken Pettit
+// SPDX-License-Identifier: Apache-2.0
+// 
+// Description:  
+// ------------------------------------------------------------------------------
+//
+//    This is a Programmable Reconfigurable Indexed State Machine (PRISM)
+//    peripheral for the TinyQV RISC-V processor.
+//
+//                        /\           
+//                       /  \           
+//                   ..-/----\-..       
+//               --''  /      \  ''--   
+//                    /________\        
+//
+// This module implements a shift-register based latch control where it
+// pulses latch enables in a clean, successive manner to shift configuration
+// words through a shift array.
+//
+// ------------------------------------------------------------------------------
+
+module latch_loader
+#(
     parameter DEPTH    = 8,
     parameter WIDTH    = 64
 )(

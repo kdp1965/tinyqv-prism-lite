@@ -1,3 +1,24 @@
+// Copyright (c) 2025 Ken Pettit
+// SPDX-License-Identifier: Apache-2.0
+// 
+// Description:  
+// ------------------------------------------------------------------------------
+//
+//    This is a Programmable Reconfigurable Indexed State Machine (PRISM)
+//    peripheral for the TinyQV RISC-V processor.
+//
+//                        /\           
+//                       /  \           
+//                   ..-/----\-..       
+//               --''  /      \  ''--   
+//                    /________\        
+//
+// This module implementsn N-bit wide register made from instantiated latches.
+// External care must be taken to contol the 'wr' and 'enable' signals
+// suitable for a latch.
+//
+// ------------------------------------------------------------------------------
+
 module prism_latch_reg
 #(
     parameter WIDTH = 32

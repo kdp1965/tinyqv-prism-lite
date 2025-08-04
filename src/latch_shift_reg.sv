@@ -1,3 +1,26 @@
+// Copyright (c) 2025 Ken Pettit
+// SPDX-License-Identifier: Apache-2.0
+// 
+// Description:  
+// ------------------------------------------------------------------------------
+//
+//    This is a Programmable Reconfigurable Indexed State Machine (PRISM)
+//    peripheral for the TinyQV RISC-V processor.
+//
+//                        /\           
+//                       /  \           
+//                   ..-/----\-..       
+//               --''  /      \  ''--   
+//                    /________\        
+//
+// This module implements a latch based shift register config array.  The
+// config words are not randomly accessible during write in order to save
+// space in a limited 2-tile peripheal.  Instead they are shifted through
+// the N states like a shift register.  Also there is no "read address" 
+// decode ... all config latch bits are expose in a single wide bus.
+//
+// ------------------------------------------------------------------------------
+
 module latch_shift_reg
 #(
     parameter WIDTH = 48,
