@@ -122,6 +122,7 @@ module tqvp_prism (
     reg   [1:0]         fifo_rd_ptr;
     reg   [1:0]         fifo_count;
     wire                fifo_write;
+    wire                fifo_push;
     wire                fifo_read;
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
@@ -223,7 +224,8 @@ module tqvp_prism (
     assign prism_in_data[15]    = count2 == comm_data;
 
     assign shift_data = shift_24_en ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
-    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & ~clk_gate;
+    assign fifo_write = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & clk_gate;
+    assign fifo_push  = fifo_write && (fifo_count != 2'h2 || (fifo_count == 2'h2 && fifo_read));
     assign fifo_read  = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
     assign fifo_full  = fifo_24 && fifo_count == 2'h2;
     assign fifo_empty = fifo_24 && fifo_count == 2'h0;
@@ -318,8 +320,14 @@ module tqvp_prism (
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
                 comm_data <= data_in[7:0];
-            else if (prism_exec && shift_8 && ~clk_gate)
+            else if (prism_exec && shift_8 && clk_gate)
                 comm_data <= shift_dir ? {comm_in, comm_data[7:1]}: {comm_data[6:0], comm_in};
+            else if (fifo_push)
+                case (fifo_wr_ptr)
+                    2'h0: comm_data <= count1[7:0];
+                    2'h1: comm_data <= count1[15:8];
+                    2'h2: comm_data <= count1[23:16];
+                endcase
 
             if (prism_exec)
             begin
@@ -378,7 +386,7 @@ module tqvp_prism (
                     count1 <= shift_dir ? {comm_in, count1[23:1]} :  {count1[22:0], comm_in};
 
                 // Use 24-bit counter as 3-byte FIFO
-                else if (fifo_write && (fifo_count != 2'h2 || (fifo_count == 2'h2 && fifo_read)))
+                else if (fifo_push)
                 begin
                     // Push data to the fifo
                     case (fifo_wr_ptr)
