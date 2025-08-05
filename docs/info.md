@@ -97,7 +97,6 @@ Chroma are PRISM's version of "personalities".  Each chroma is a unique hue of P
 
 Chroma are compiled into PRISM programmable bitstreams via a custom fork of Yosys (see link below) using a configuration file describing the architecture in the TinyQV PRISM peripheral.  In addition to bitstream generation, the Yosys PRISM backend also calculates the ctrl_reg value for selecting configuring the PRISM peripheral muxes, etc.  There are several output formats including C, Python and columnar list:
 
-|    |      |      |      |     |      |      |     |      |      |             |
 | ST | Mux0 | Mux1 | Mux2 | Inc | JmpA | OutA | Out | CfgA | CfgB |        STEW |
 |----|------|------|------|-----|------|------|-----|------|------|-------------|
 |  0 |    8 |    0 |    0 |   0 |    1 |  100 | 001 |    a |    0 | 28800012010 |
@@ -116,22 +115,22 @@ PRISM Yosys fork: https://github.com/kdp1965/yosys-prism
 
 Document the registers that are used to interact with your peripheral
 
-| Address | Name  | Access | Description                                                         |
-|---------|-------|--------|---------------------------------------------------------------------|
-| 0x00    | CTRL  | R/W    | Control register - see [CTRL Register](#ctrl-register-0x00) below |
-| 0x04    | DBG_CTRL | W | Debug control |
-| 0x0C    | DBG_STAT | W | Debug status |
-| 0x10    | CFG_LSB | W | Config LSB register (write second) |
-| 0x14    | CFG_MSB | W | Config MSB register (write first) |
-| 0x18    | HOST_DATA | R/W | Host data register - see [HOST_DATA Register](#host_data-register-0x18) |
-| 0x19    | FIFO_DATA | R | FIFO read data register - see [HOST_DATA Register](#host_data-register-0x18) |
-| 0x1A    | FIFO_STAT | R | FIFO status register - see [HOST_DATA Register](#host_data-register-0x18) |
-| 0x1B    | HOST_IN | R/W | Host input register - see [HOST_DATA Register](#host_data-register-0x18) |
-| 0x20    | COUNT_CFG | R/W | Counter config register - see [COUNT_CONFIG Register](#count_config-register-0x20) |
-| 0x24    | COUNT_VAL | R | Counter values register - see [COUNT_VALUES Register](#count_values-register-0x24) |
-| 0x34    | DECISION_TREE | R | Decision tree data register |
-| 0x38    | OUTPUT_DATA | R | Output data register |
-| 0x3C    | INPUT_DATA | R | Input data register |
+| Address | Name          | Access | Description                                                         |
+|---------|---------------|--------|---------------------------------------------------------------------|
+| 0x00    | CTRL          | R/W    | Control register - see [CTRL Register](#ctrl-register-0x00) below   |
+| 0x04    | DBG_CTRL      | W      | Debug control                                                       |
+| 0x0C    | DBG_STAT      | W      | Debug status                                                        |
+| 0x10    | CFG_LSB       | W      | Config LSB (write second)                                           |
+| 0x14    | CFG_MSB       | W      | Config MSB (write first)                                            |
+| 0x18    | HOST_DATA     | R/W    | Host data - see [HOST_DATA Register](#host_data-register-0x18)      |
+| 0x19    | FIFO_DATA     | R      | FIFO read data - see [HOST_DATA Register](#host_data-register-0x18) |
+| 0x1A    | FIFO_STAT     | R      | FIFO status - see [HOST_DATA Register](#host_data-register-0x18)    |
+| 0x1B    | HOST_IN       | R/W    | Host input - see [HOST_DATA Register](#host_data-register-0x18)     |
+| 0x20    | COUNT_CFG     | R/W    | Counter config - see [COUNT_CFG Reg](#count_config-register-0x20)   |
+| 0x24    | COUNT_VAL     | R      | Counter values - see [COUNT_VAL Reg](#count_values-register-0x24)   |
+| 0x34    | DECISION_TREE | R      | Decision tree data                                                  |
+| 0x38    | OUTPUT_DATA   | R      | Output data                                                         |
+| 0x3C    | INPUT_DATA    | R      | Input data                                                          |
 
 ### Bit-field Details
 
@@ -139,20 +138,20 @@ Document the registers that are used to interact with your peripheral
 
 | Bit(s) | Name | Description |
 |--------|------|-------------|
-| 31 | Interrupt clear | Write 1 to clear interrupt |
-| 30 | PRISM enable| Enable/disable PRISM executino |
-| 23 | ui_in[7] | Direct read of ui_in bit 7 |
-| 22-16 | latched_out | Latched output values |
-| 13 | latch5 | Use prism_out[5] to latch inputs |
-| 12 | count2_dec | Enable count2 decrement mode |
-| 11 | fifo_24 | Enable 24-bit FIFO mode |
-| 10 | shift_24_en | Enable 24-bit shift mode |
-| 9 | shift_dir | Shift direction (0=left, 1=right) |
-| 8 | shift_en | Enable shift operations |
-| 7 | latch_in_out | Latch input/output mode |
-| 6-4 | cond_out_sel | Conditional output selection |
-| 3-2 | shift_out_sel | Shift output selection |
-| 1-0 | comm_in_sel | Communication input selection |
+| 31     | Interrupt clear | Write 1 to clear interrupt |
+| 30     | PRISM enable| Enable/disable PRISM executino |
+| 23     | ui_in[7] | Direct read of ui_in bit 7 |
+| 22-16  | latched_out | Latched output values |
+| 13     | latch5 | Use prism_out[5] to latch inputs |
+| 12     | count2_dec | Enable count2 decrement mode |
+| 11     | fifo_24 | Enable 24-bit FIFO mode |
+| 10     | shift_24_en | Enable 24-bit shift mode |
+| 9      | shift_dir | Shift direction (0=left, 1=right) |
+| 8      | shift_en | Enable shift operations |
+| 7      | latch_in_out | Latch input/output mode |
+| 6-4    | cond_out_sel | Conditional output selection |
+| 3-2    | shift_out_sel | Shift output selection |
+| 1-0    | comm_in_sel | Communication input selection |
 
 #### DBG_CTRL Register (0x04)
 
