@@ -328,9 +328,9 @@ module tqvp_prism (
                 comm_data <= shift_dir ? {shift_in, comm_data[7:1]}: {comm_data[6:0], shift_in};
             else if (fifo_push)
                 case (fifo_wr_ptr)
-                    2'h0: comm_data <= count1[7:0];
-                    2'h1: comm_data <= count1[15:8];
-                    2'h2: comm_data <= count1[23:16];
+                    2'h0: comm_data <= count1_preload[7:0];
+                    2'h1: comm_data <= count1_preload[15:8];
+                    2'h2: comm_data <= count1_preload[23:16];
                 endcase
 
             if (prism_exec)
