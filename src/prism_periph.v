@@ -253,7 +253,8 @@ module tqvp_prism (
     always @*
     begin
         case (address)
-            6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, 13'h0,
+            6'h0:    data_out = {prism_interrupt, prism_reset, prism_enable, 5'h0,
+                                ui_in[7], latched_out,
                                 2'h0, latch5, count2_dec, fifo_24, shift_24_en, shift_dir, shift_en,
                                 latch_in_out, cond_out_sel, shift_out_sel, shift_in_sel};
             6'h18:   data_out = {6'h0, host_in, 2'h0, fifo_rd_ptr, fifo_wr_ptr, fifo_full, fifo_empty, fifo_rd_data, comm_data};
@@ -262,7 +263,6 @@ module tqvp_prism (
             6'h1B:   data_out = {30'h0, host_in};
             6'h20:   data_out = {count2_compare, count1_preload};
             6'h24:   data_out = {count2, count1};
-            6'h30:   data_out = {16'h0, 7'h0, ui_in[7], 1'b0, latched_out};
             default: data_out = prism_read_data;
         endcase
     end
