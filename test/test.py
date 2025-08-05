@@ -190,10 +190,10 @@ async def test_project(dut):
         assert await tqv.read_word_reg(0x10) == chroma[1]
         
         # Now program the PRISM peripheral configuration registers
-        await tqv.write_word_reg(0x0, 0x00000000 | ctrl_reg)
-        assert await tqv.read_word_reg(0x0) == (0x00000000 | ctrl_reg)
+        await tqv.write_word_reg(0x0, ctrl_reg)
+        assert await tqv.read_word_reg(0x0) == ctrl_reg
        
-        # Now release PRISM from reset
+        # Now enable PRISM
         await tqv.write_word_reg(0x0, 0x40000000 | ctrl_reg)
 
     async def test_chroma_gpio24():
