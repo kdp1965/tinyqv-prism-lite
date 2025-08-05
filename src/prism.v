@@ -115,7 +115,7 @@ module prism
    input   wire                  clk,              // System clock 
    input   wire                  clk_div2,         // System clock / 2
    input   wire                  rst_n,            // TRUE when receiving Bit 0
-   input   wire                  debug_reset,
+//   input   wire                  debug_reset,
    input   wire                  fsm_enable,       // Enable signal
 
    // Symbol and other state detect inputs
@@ -226,7 +226,7 @@ module prism
 
    wire [31:0]             debug_rdata_ram;  // Peripheral read data
 
-   assign prism_rst_n = rst_n & ~debug_reset;
+   assign prism_rst_n = rst_n & fsm_enable;//~debug_reset;
 
    // Instantiate the Latch based SIT
    prism_latch_sit
@@ -329,7 +329,7 @@ module prism
       end
       else
       begin
-         if (fsm_enable)
+//         if (fsm_enable)
          begin
             curr_si <= next_si;
          end
