@@ -7,10 +7,16 @@ You can also include images in this folder and reference them in the markdown. E
 512 kb in size, and the combined size of all images must be less than 1 MB.
 -->
 
+## PRISM
+
+Author: Ken Pettit
+
+Peripheral index: 8
+
 ## What it does
 
 This is a Programmable Reconfigurable Indexed State Machine (PRISM) that executes a Verilog coded
-state machine that is loaded via a configuration bitstream at runtime.
+Mealy state machine that is loaded via a configuration bitstream at runtime.  It supports FSM designs up to 8 states and includes controllable peripherals such as counters, communication shift register, FIFO and interrupt support.  It also features an integrated debugger with 2 breakpoints, single-stepping and readback of state information.
 
 ## Block diagram
 The following is a top level diagram of the PRISM Peripheral.
@@ -18,10 +24,41 @@ The following is a top level diagram of the PRISM Peripheral.
 ![](prism_periph.png)
 
 The PRISM controller itself is a programmable state machine that uses an N-bit (3 in this case)
-index register to track the current FSM state.  That index is a pointer into the State Information Table (SIT)
-to request the State Execution Word (STEW).  The following is a block diagram of the PRISM controller:
+index register to track the current FSM state.  That index is a pointer into the State Information Table (SIT) to request the State Execution Word (STEW).  Due to long combinatorial delays, PRISM operates from a divide-by-two clock (32Mhz max).  The following is a block diagram of the PRISM controller:
 
 ![](prism_submitted.png)
+
+## Operating priciples of PRISM
+
+Each state is encoded with a 44-bit (in the case of TinyQV PRISM) execution word that controls the FSM output values, input values and state transition decision tree for that state.  The peripheral is operated by loading a "Chroma" (more on that below), or execution personality in the 352 bit configuration array and programming the 14-bit control word to set peripheral behaviors (like choosing 24-bit shift register vs. 24-bit counter, choosing pin locations for shift data in/out, etc.).
+
+Once a chroma has been loaded, the control register programmed and the PRISM enabled, the FSM will start at state 0.  Eight of the bits in the State Execution Word (STEW) specify which of 16 inputs get routed to the 2-input Look Up Table (LUT) that makes the decision for jumping to the specified state (stored in 3 bits of the STEW).  While in any state, there is a set of 11 (from the STEW) output bits that drive the PRISM block outputs when the LUT output is zero (no jump) and 11 more that are output during a jump (transitional outputs).
+
+Each state also has an independent 16-input mux (4-bits from STEW) driving a 1-input LUT to drive a "conditional output".  This is an output who's value is not strictly depedent on the static values in the STEW for the current state, but rather depends on the selected input during that state.
+
+In larger PRISM implementations, each state has "dual-compare" with two N-bit LUTs which allows jumping to one of two possible states.  Due to size restrictions, this peripheral does not include dual-compare.  Instead the PRISM implementation has (in each state's STEW), a single "increment state" bit.  In any state where this bit is set and the LUT output is FALSE (i.e no jump), then the state will increment to the next state, and the "starting state" of the first occurance of this will be saved.  Then each successive state can test a different set of inputs to jump to different states.  When a state is encountered without the 'inc' bit set, PRISM will loop back to the "starting state" and loop through that set of states until the first TRUE from a LUT, clearing the loop.
+
+TL/DR:
+  1. Load a Chroma defining the FSM and enable PRISM
+  2. State starts at zero
+  3. Each state chooses up to 3 of 16 inputs via config bits
+  4. 2-input LUT decides if "jump to defined state" occurs
+  5. Increment bit decides if "state looping" is in effect
+  6. State looping ends when first LUT jump occurs
+  7. Outputs bits from STEW for "non-jump" and "transitional jump"
+  8. One conditional output based on single selected input per state
+
+## Peripherals
+
+The PRISM Peripheral has, itself, peripherals.  Those are:
+  1. 8-Bit communication shift register (left or right)
+  2. 8-Bit count up/down register with compare (dedicated compare reg or comm register).
+  3. 24-bit register: Count down with zero detect, shift left / right or 3-byte FIFO
+  4. 5-bit Shift bit counter (automatic)
+  5. Input shift data source selection
+  6. Output shift data destination selection
+  7. Conditional output destination selection
+  8. Controllable latched inputs (2-bits)
 
 ## Register map
 

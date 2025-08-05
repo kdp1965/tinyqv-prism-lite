@@ -5,6 +5,8 @@ from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
 
 from tqv import TinyQV
 
+PERIPHERAL_NUM = 8
+
 '''
 ==============================================================
 PRISM Downloadable Configuration
@@ -59,7 +61,7 @@ async def test_project(dut):
     output_value = 0
     input_shift = input_value
     spi_data = []
-    chroma = 'gpio24'
+    chroma = ''
     spi_transfer = False
     rx_byte = 0
 
@@ -84,6 +86,9 @@ async def test_project(dut):
             elif ((prev_val ^ curr_val) & (1 << 7)) and (curr_val & (1 << 7)):
                 # Shift left
                 input_shift = (input_shift << 1) & 0xFFFFFF
+            else:
+               prev_val = curr_val
+               continue
             prev_val = curr_val
 
             # Set ui_in[0] to MSB
@@ -175,6 +180,7 @@ async def test_project(dut):
         '''
         # First reset the PRISM
         await tqv.write_word_reg(0x00, 0x00000000)
+        await delay(64)
         assert await tqv.read_word_reg(0x0) == 0x00000000
 
         # Now load the chroma
@@ -197,7 +203,7 @@ async def test_project(dut):
         await tqv.write_word_reg(0x0, 0x40000000 | ctrl_reg)
 
     async def test_chroma_gpio24():
-        nonlocal input_value
+        nonlocal input_value, chroma
 
         await load_chroma(chroma_gpio24, chroma_gpio24_ctrlReg)
         
@@ -206,13 +212,48 @@ async def test_project(dut):
         
         # Set an input value in the testbench
         input_value = 0x00BEEF
+
+        chroma = 'gpio24'
+
+        # Set a breakpoint in the PRISM debugger
+        await tqv.write_word_reg(0x04, 0x00000034)
         
         # Start a transfer
+        dut._log.info(f"    Starting GPIO24 shift operation")
         await tqv.write_word_reg(0x18, 0x03000000)
-        await tqv.write_word_reg(0x18, 0x00000000)
+        await tqv.write_word_reg(0x18, 0x02000000)
+
+        # Delay a bit to give FSM time to break
+        for i in range(40):
+            await RisingEdge(dut.clk)
+
+        dut._log.info(f"    Testing if PRISM halted at breakpoint")
+        dbg_status = await tqv.read_word_reg(0x0C)
+        assert (dbg_status & 3) == 3
+        assert (dbg_status & 0x40) == 0x40
+
+        # Issue a single step request
+        dut._log.info(f"    Single stepping PRISM")
+        await tqv.write_word_reg(0x04, 0x00000036)
+
+        dut._log.info(f"    Testing if PRISM stepped ")
+        dbg_status = await tqv.read_word_reg(0x0C)
+        assert (dbg_status & 3) == 2
+
+        # Clear the interrupt caused by halt
+        await tqv.write_byte_reg(0x03, 0x000000C0)
+
+        # Resume the execution
+        await tqv.write_word_reg(0x04, 0x00000001)
+        await tqv.write_word_reg(0x04, 0x00000000)
+
+        for i in range(200):
+            await RisingEdge(dut.clk)
         
         # See if we got the input value
+        dut._log.info(f"    Testing input read value")
         assert await tqv.read_word_reg(0x24) == 0x0000BEEF
+        dut._log.info(f"    Testing output store value")
         assert output_value == 0x00F05077
 
     async def test_chroma_spislave():
@@ -248,9 +289,11 @@ async def test_project(dut):
             await RisingEdge(dut.clk)
 
         # Read a byte from the FIFO
+        dut._log.info(f"    Testing read byte from FIFO")
         assert await tqv.read_byte_reg(0x19) == 0xF5
 
         # Test if the interrupt was set
+        dut._log.info(f"    Testing if Interrupt was set")
         assert await tqv.read_word_reg(0) & 0x80000000 != 0
 
     # Start the simulations
@@ -263,12 +306,12 @@ async def test_project(dut):
     # with TinyQV - the implementation of this class will be replaces with a
     # different version that uses Risc-V instructions instead of the SPI 
     # interface to read and write the registers.
-    tqv = TinyQV(dut)
+    tqv = TinyQV(dut, PERIPHERAL_NUM)
 
     # Reset
     await tqv.reset()
 
-    dut._log.info("Test project behavior")
+    dut._log.info("Testing PRISM")
 
     # Write values to the count2_compare / count1_preload
     await tqv.write_word_reg(0x00, 0x40000000)
@@ -276,6 +319,7 @@ async def test_project(dut):
     await tqv.write_word_reg(0x20, 0x0300FA12)
     await ClockCycles(dut.clk, 8)
 
+    dut._log.info("Testing basic control and latch register access")
     assert await tqv.read_word_reg(0x20) == 0x0300FA12
     assert await tqv.read_word_reg(0x0) == 0x40000000
 
@@ -283,6 +327,7 @@ async def test_project(dut):
 
     # Test register write and read back
     # Write a value to the config array 
+    dut._log.info("Testing PRISM state information integrity")
     await tqv.write_word_reg(0x14, 0x00001010)
     await tqv.write_word_reg(0x10, 0x10101010)
 
@@ -318,7 +363,9 @@ async def test_project(dut):
     # Okay, now load up a real design and see if it does anything
     # This is the 24-Bit GPIO Chroma
     # ===========================================================
+    dut._log.info("Testing gpio24 Chroma")
     await test_chroma_gpio24()
  
+    dut._log.info("Testing spislave Chroma")
     await test_chroma_spislave()
     
