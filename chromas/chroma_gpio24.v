@@ -75,7 +75,8 @@ module chroma_gpio24
 
    // Output data
    output wire [10:0]   out_data,      // Static State outputs
-   output wire [0:0]    cond_out       // Conditional outputs
+   output wire [0:0]    cond_out,      // Conditional outputs
+   output reg  [31:0]   ctrl_reg
 );
 
    // Local FSM states
@@ -91,7 +92,19 @@ module chroma_gpio24
    localparam integer HOST_START        = 0;
    localparam integer HOST_SAVE_OUTPUTS = 1;
 
+   // Control Register State
+   localparam [1:0]  SHIFT_IN_SEL       = 2'h0;  // Shift input data on ui_in[0]
+   localparam [1:0]  SHIFT_OUT_SEL      = 2'h2;  // Enable 24-bit shift
+   localparam [2:0]  COND_OUT_SEL       = 3'h1;  // Enable shift operation
+   localparam [0:0]  LATCH_IN_OUT       = 1'b1;  // MSB first
+   localparam [0:0]  SHIFT_EN           = 1'b1;  // Route shift_data to uo_out[3]
+   localparam [0:0]  SHIFT_DIR          = 1'b0;  // Not using 24-bit reg as FIFO
+   localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Readback latched out data [6:1]
+   localparam [0:0]  FIFO_24            = 1'b0;  // Route cond_out to uo_out[2]
+   localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
+
    reg   [2:0]    curr_state, next_state;
+
 
    // =======================================================
    // Wires to map inputs
@@ -178,6 +191,8 @@ module chroma_gpio24
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       gpio_store     = 1'b0;
+      ctrl_reg       = {16'h0, 3'h0, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+                        LATCH_IN_OUT, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // =========================================================
       // State machine logic
@@ -186,7 +201,7 @@ module chroma_gpio24
       // =========================================================
       case (curr_state)
 
-      STATE_IDLE:
+      STATE_IDLE:       // State 0
          begin
             // Detect I/O shift start 
             if (host_in[HOST_START])
@@ -201,12 +216,12 @@ module chroma_gpio24
             end
          end
 
-      STATE_LATCH_INPUTS:
+      STATE_LATCH_INPUTS:  // State 1
          begin
             next_state = STATE_SHIFT_BITS;
          end
       
-      STATE_SHIFT_BITS:
+      STATE_SHIFT_BITS:    // State 2
          begin
             // Shift the next bit out
             shift_en = 1'b1;
@@ -219,7 +234,7 @@ module chroma_gpio24
             end
          end
 
-      STATE_DELAY:
+      STATE_DELAY:         // State 3
          begin
             // This is a delay state because external 74xxx don't run at 32MHz
             // Test if we are done shifting
@@ -229,7 +244,7 @@ module chroma_gpio24
                next_state = STATE_MAYBE_SAVE_OUTPUTS;
          end
 
-      STATE_MAYBE_SAVE_OUTPUTS:
+      STATE_MAYBE_SAVE_OUTPUTS:  // State 4
          begin
             // Test if we should save outputs
             if (host_in[HOST_SAVE_OUTPUTS])
@@ -239,7 +254,7 @@ module chroma_gpio24
             next_state = STATE_AWAIT_DEASSERT;
          end
 
-      STATE_AWAIT_DEASSERT:
+      STATE_AWAIT_DEASSERT:      // State 5
          begin
             // Wait for host to clear the 'start' signal
             if (!host_in[HOST_START])
