@@ -5,8 +5,6 @@ from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
 
 from tqv import TinyQV
 
-PERIPHERAL_NUM = 8
-
 '''
 ==============================================================
 PRISM Downloadable Configuration
@@ -306,7 +304,7 @@ async def test_project(dut):
     # with TinyQV - the implementation of this class will be replaces with a
     # different version that uses Risc-V instructions instead of the SPI 
     # interface to read and write the registers.
-    tqv = TinyQV(dut, PERIPHERAL_NUM)
+    tqv = TinyQV(dut)
 
     # Reset
     await tqv.reset()
