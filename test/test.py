@@ -194,7 +194,7 @@ async def test_project(dut):
         assert await tqv.read_word_reg(0x0) == (0x00000000 | ctrl_reg)
        
         # Now release PRISM from reset
-        await tqv.write_word_reg(0x0, 0x20000000 | ctrl_reg)
+        await tqv.write_word_reg(0x0, 0x40000000 | ctrl_reg)
 
     async def test_chroma_gpio24():
         nonlocal input_value
@@ -271,13 +271,13 @@ async def test_project(dut):
     dut._log.info("Test project behavior")
 
     # Write values to the count2_compare / count1_preload
-    await tqv.write_word_reg(0x00, 0x20000000)
+    await tqv.write_word_reg(0x00, 0x40000000)
     await ClockCycles(dut.clk, 8)
     await tqv.write_word_reg(0x20, 0x0300FA12)
     await ClockCycles(dut.clk, 8)
 
     assert await tqv.read_word_reg(0x20) == 0x0300FA12
-    assert await tqv.read_word_reg(0x0) == 0x20000000
+    assert await tqv.read_word_reg(0x0) == 0x40000000
 
     await tqv.write_word_reg(0x00, 0x00000000)
 
