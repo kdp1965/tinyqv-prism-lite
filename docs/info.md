@@ -58,6 +58,61 @@ The PRISM Peripheral has, itself, peripherals.  Those are:
   7. Conditional output destination selection
   8. Controllable latched inputs (2-bits)
 
+## Chroma
+
+Chroma are PRISM's version of "personalities".  Each chroma is a unique hue of PRISM's spectrum of behavior. Chroma's are coded as Mealy state machines in Verilog to define FSM inputs, outputs and state transitions:
+
+   always @(posedge clk or negedge rst_n)
+      if (~rst_n)
+         curr_state <= 3'h0;
+      else
+         curr_state <= fsm_enable ? next_state : 'h0;
+
+   always_comb
+   begin
+      pin_out[5:0]   = 6'h0;
+      count1_dec     = 1'b0;
+      etc.
+
+      case (curr_state)
+      STATE_IDLE:       // State 0
+         begin
+            // Detect I/O shift start 
+            if (host_in[HOST_START])
+            begin
+               // Load inputs 
+               pin_out[GPIO_LOAD] = 1'b0;
+
+               // Load 24-bit shift register from preload (our OUTPUTS)
+               count1_load = 1'b1;
+               next_state = STATE_LATCH_INPUTS;
+            end
+         end
+      STATE_LATCH_INPUTS:  // State 1
+         begin
+            next_state = STATE_SHIFT_BITS;
+         end
+      etc.
+   end
+
+Chroma are compiled into PRISM programmable bitstreams via a custom fork of Yosys (see link below) using a configuration file describing the architecture in the TinyQV PRISM peripheral.  In addition to bitstream generation, the Yosys PRISM backend also calculates the ctrl_reg value for selecting configuring the PRISM peripheral muxes, etc.  There are several output formats including C, Python and columnar list:
+
+    +----+------+------+------+-----+------+------+-----+------+------+-------------+
+    | ST | Mux0 | Mux1 | Mux2 | Inc | JmpA | OutA | Out | CfgA | CfgB |        STEW |
+    +----+------+------+------+-----+------+------+-----+------+------+-------------+
+    |  0 |    8 |    0 |    0 |   0 |    1 |  100 | 001 |    a |    0 | 28800012010 |
+    |  1 |    0 |    0 |    0 |   0 |    2 |  001 | 000 |    f |    0 | 3c008004000 |
+    |  2 |    d |    0 |    0 |   0 |    3 |  001 | 041 |    a |    0 | 2800841601a |
+    |  3 |    e |    0 |    0 |   1 |    2 |  001 | 001 |    5 |    0 | 1400801401d |
+    |  4 |    0 |    0 |    9 |   0 |    5 |  001 | 000 |    f |    2 | bc00800b200 |
+    |  5 |    8 |    0 |    0 |   0 |    0 |  001 | 001 |    5 |    0 | 14008010010 |
+    |  6 |    0 |    0 |    0 |   0 |    0 |  001 | 000 |    f |    0 | 3c008000000 |
+    |  7 |    0 |    0 |    0 |   0 |    0 |  001 | 000 |    f |    0 | 3c008000000 |
+    +----+------+------+------+-----+------+------+-----+------+------+-------------+
+
+Link for example chromas: https://github.com/kdp1965/tinyqv-prism-lite/tree/main/chromas
+Link for PRISM Yosys fork: https://github.com/kdp1965/yosys-prism
+
 ## Register map
 
 Document the registers that are used to interact with your peripheral
