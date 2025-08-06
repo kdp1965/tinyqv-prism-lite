@@ -18,11 +18,11 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - "prism_periph.v"
-    - "latch_shift_reg.sv"
+    - "latch_shift_reg.v"
     - "latch_loader.v"
     - "prism.v"
     - "prism_latch_sit.v"
-    - "prism_latch_reg.sv"
+    - "prism_latch_reg.v"
     - "tt_wrapper.v"
     - "test_harness/falling_edge_detector.sv"
     - "test_harness/rising_edge_detector.sv"
