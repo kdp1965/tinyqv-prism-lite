@@ -102,9 +102,7 @@ module tqvp_prism (
     reg   [6:0]         latched_out;
     reg   [1:0]         latched_in;
     wire  [1:0]         cond_out_sel;
-//    wire  [2:0]         cond_out_sel;
     wire  [3:1]         cond_out_en;
-//    wire  [6:1]         cond_out_en;
     reg   [7:0]         comm_data;
     wire  [1:0]         shift_in_sel;
     wire                shift_in;
@@ -217,9 +215,6 @@ module tqvp_prism (
     assign uo_out_c[4]   = prism_out_data[4];
     assign uo_out_c[5]   = (prism_out_data[5]   & ~out5_fifo_full)                       | (out5_fifo_full & fifo_full);
     assign uo_out_c[6]   = prism_out_data[6];
-    //assign uo_out_c[4]   = (prism_out_data[4]   & ~cond_out_en[4])                       | (cond_out_en[4]   & cond_out[0]);
-    //assign uo_out_c[5]   = (prism_out_data[5]   & ~cond_out_en[5] & ~out5_fifo_full)     | (cond_out_en[5]   & cond_out[0])      | (out5_fifo_full & fifo_full);
-    //assign uo_out_c[6]   = (prism_out_data[6]   & ~cond_out_en[6])                       | (cond_out_en[6]   & cond_out[0]);
 
     assign uo_out[7:1]   = latched_out;
     assign uo_out[0]     = 1'b0;
@@ -336,18 +331,11 @@ module tqvp_prism (
             else if (prism_exec && shift_8 && clk_gate)
                 comm_data <= shift_dir ? {shift_in, comm_data[7:1]}: {comm_data[6:0], shift_in};
             else if (load4 & prism_out_data[4])
-//                comm_data <= count2_compare;
                 case (fifo_wr_ptr)
                     2'h0: comm_data <= count1_preload[7:0];
                     2'h1: comm_data <= count1_preload[15:8];
                     2'h2: comm_data <= count1_preload[23:16];
                 endcase
-//            else if (fifo_push)
-//                case (fifo_wr_ptr)
-//                    2'h0: comm_data <= count1_preload[7:0];
-//                    2'h1: comm_data <= count1_preload[15:8];
-//                    2'h2: comm_data <= count1_preload[23:16];
-//                endcase
 
             if (prism_exec)
             begin
