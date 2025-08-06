@@ -142,7 +142,7 @@ module tqvp_prism (
     // =============================================================
     // Crate a divide by 2 clock using clock gate
     // =============================================================
-/*
+`ifdef DONT_COMPILE
     always @(negedge clk or negedge rst_n)
     begin
         if (~rst_n)
@@ -155,9 +155,10 @@ module tqvp_prism (
     assign clk_div2 = clk_gate & clk;
 `else
     /* verilator lint_off PINMISSING */
-//    sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
+    sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
     /* verilator lint_on PINMISSING */
-//`endif
+`endif
+`endif
     
     // =============================================================
     // Instantiate the PRISM controller
