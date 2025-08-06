@@ -20,6 +20,9 @@
 {# Define tan blend paint}
 {:pt blend cE2C49C cFADCB4 stroke 1 text cBLK}
 
+{# Define flip-flop red paint}
+{:ff fill cRED stroke 1 text cWHI line cWHI}
+
 {# Define Annotation Line with arrow at the end}
 {:a* begin-type arrow end-type arrow}
 
