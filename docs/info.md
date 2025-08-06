@@ -51,25 +51,29 @@ drive a "conditional output".  This is an output who's value is not strictly dep
 static values in the STEW for the current state, but rather depends on the selected input during
 that state.
 
+### State Looping (important)
+
 In larger PRISM implementations, each state has "dual-compare" with two N-bit LUTs which allows
 jumping to one of two possible states.  Due to size restrictions, this peripheral does not include
 dual-compare.  Instead the PRISM implementation has (in each state's STEW), a single
-"increment state" bit.  In any state where this bit is set and the LUT output is FALSE (i.e no jump),
-then the state will increment to the next state, and the "starting state" of the first occurance
-of this will be saved.  Then each successive state can test a different set of inputs to jump to
-different states.  When a state is encountered without the 'inc' bit set, PRISM will loop back to
-the "starting state" and loop through that set of states until the first TRUE from a LUT,
-clearing the loop.
+"increment state" bit.
 
-TL/DR:
-  1. Load a Chroma defining the FSM and enable PRISM
-  2. State starts at zero
-  3. Each state chooses up to 3 of 16 inputs via config bits
-  4. 2-input LUT decides if "jump to defined state" occurs
-  5. Increment bit decides if "state looping" is in effect
-  6. State looping ends when first LUT jump occurs
-  7. Outputs bits from STEW for "non-jump" and "transitional jump"
-  8. One conditional output based on single selected input per state
+In any state where the 'inc' bit is set and the LUT output is FALSE (i.e no jump),
+then the state will increment to the next state, and the "starting state" of the first occurance
+of this will be saved (i.e. start of loop).  Then each successive state can test a different set of
+inputs to jump to different states.  When a state is encountered with the 'inc' bit NOT set, PRISM
+will loop back to the "starting state" and loop through that set of states until the first TRUE
+from a LUT causing a jump, clearing the loop.
+
+### TL/DR
+  1. Load a Chroma defining the FSM and enable PRISM.
+  2. State starts at zero.
+  3. Each state chooses up to 3 of 16 inputs via config bits.
+  4. 2-input LUT decides if "jump to defined state" occurs.
+  5. Increment bit decides if "state looping" is in effect.
+  6. State looping ends when first LUT jump occurs.
+  7. Outputs bits from STEW for "non-jump" and "transitional jump".
+  8. One conditional output based on single selected input per state.
 
 ## External PRISM Inputs
 
@@ -148,6 +152,22 @@ The PRISM Peripheral has, itself, peripherals.  Those are:
   7. Conditional output destination selection
   8. Controllable latched inputs (2-bits)
 
+## 8-Bit Counter (count2)
+
+The 8-bit counter is an up/down/clear counter controllable from the PRISM chroma.  There are three
+PRISM outputs plus a ctrl_reg bit that contols the operation (see figure below).  Upon reset (or disabling
+PRISM) the count will be zero.  In any PRISM state, the counter can be cleared, incremented or decremented
+(assuming decrement has been enabled via the count2_dec ctrl_reg bit).  The decrement is provided as 
+a configurable feature in case it is not needed but uo_out[6] is needed (since they share the same out[5] signal).
+
+![](08_8bit_counter.png)
+
+The current 8-bit count2 value is compared against both the 8-bit count2_compare register (fixed register accessible
+by TinyQV with R/W access) *and* the comm_data register (also R/W accessible).  The result of each of these
+compares are made available on PRISM inputs in[11] and in[15].  A running chroma can use these compare inputs
+for timing, terminal count checking, etc.
+
+
 ## Chroma
 
 Chroma are PRISM's version of "personalities".  Each chroma is a unique hue of PRISM's
@@ -189,7 +209,7 @@ inputs, outputs and state transitions:
 
 Chroma are compiled into PRISM programmable bitstreams via a custom fork of Yosys (see link below)
 using a configuration file describing the architecture in the TinyQV PRISM peripheral.  In addition
-to bitstream generation, the Yosys PRISM backend also calculates the ctrl_reg value for selecting
+to bitstream generation, the Yosys PRISM backend also calculates the ctrl_reg value for 
 configuring the PRISM peripheral muxes, etc.  There are several output formats including C,
 Python and columnar list:
 
@@ -205,14 +225,13 @@ Python and columnar list:
 |  7 |    0 |    0 |    0 |   0 |    0 |  001 | 000 |    f |    0 | 3c008000000 |
 
 The table has the following fields
-
  - ST: the state (obvious)
  - Mux0: Selects input for LUT2 input 0 (jump decision)
  - Mux1: Selects input for LUT2 input 1
  - Mux2: Selects input for LUT1 Conditional Output
  - Inc: Set when next state looping is requested (i.e. 'else state <= ST_A')
- - JmpA: The state to jump to if LUT2 output is TRUE
- - OutA: Outputs during jump to JmpA state (LSB is out[0])
+ - JmpA: The "Jump to" state if LUT2 output is TRUE
+ - OutA: Outputs during "jump to" JmpA state (LSB is PRISM out[0])
  - Out: Output during no-jump, steady-state dwelling
  - CfgA: The LUT2 4-bit lookup table values
  - CfgB: The LUT1 2-bit lookup table values

@@ -136,12 +136,13 @@ module tqvp_prism (
     reg                 latch_wr;
     reg                 latch_wr_p0;
     wire  [0:0]         cond_out;
-    wire                clk_div2;
-    reg                 clk_gate;
+//    wire                clk_div2;
+//    reg                 clk_gate;
 
     // =============================================================
     // Crate a divide by 2 clock using clock gate
     // =============================================================
+/*
     always @(negedge clk or negedge rst_n)
     begin
         if (~rst_n)
@@ -154,9 +155,9 @@ module tqvp_prism (
     assign clk_div2 = clk_gate & clk;
 `else
     /* verilator lint_off PINMISSING */
-    sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
+//    sky130_fd_sc_hd__dlclkp_4 CG( .CLK(clk), .GCLK(clk_div2), .GATE(clk_gate) );
     /* verilator lint_on PINMISSING */
-`endif
+//`endif
     
     // =============================================================
     // Instantiate the PRISM controller
@@ -168,7 +169,7 @@ module tqvp_prism (
     i_prism
     (
         .clk                ( clk               ),
-        .clk_div2           ( clk_div2          ),
+//        .clk_div2           ( clk_div2          ),
         .rst_n              ( rst_n             ),
 
         .fsm_enable         ( prism_enable      ),
@@ -188,7 +189,7 @@ module tqvp_prism (
     );
 
     assign prism_wr = data_write_n != 2'b11;
-    assign prism_exec = prism_enable && !prism_halt;
+    assign prism_exec = prism_enable && !(prism_halt | prism_halt_r);
 
     genvar i;
     generate
@@ -231,7 +232,7 @@ module tqvp_prism (
     assign user_interrupt = prism_interrupt;
 
     assign shift_data     = shift_24_en ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
-    assign fifo_write     = prism_out_data[OUT_COUNT1_LOAD] & fifo_24 & clk_gate;
+    assign fifo_write     = prism_out_data[OUT_COUNT1_LOAD] & fifo_24;// & clk_gate;
     assign fifo_push      = fifo_write && (fifo_count != 2'h2 || (fifo_count == 2'h2 && fifo_read));
     assign fifo_read      = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
     assign fifo_full      = fifo_24 && fifo_count == 2'h2;
@@ -328,7 +329,7 @@ module tqvp_prism (
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
                 comm_data <= data_in[7:0];
-            else if (prism_exec && shift_8 && clk_gate)
+            else if (prism_exec && shift_8)// && clk_gate)
                 comm_data <= shift_dir ? {shift_in, comm_data[7:1]}: {comm_data[6:0], shift_in};
             else if (load4 & prism_out_data[4])
                 case (fifo_wr_ptr)
@@ -359,7 +360,7 @@ module tqvp_prism (
                     else if (fifo_read && !fifo_write && fifo_count != 2'h0)
                         fifo_count <= fifo_count - 1;
                 end
-                else if (shift_24 && clk_gate && shift_count == 3'h7)
+                else if (shift_24 && shift_count == 3'h7)// && clk_gate)
                     fifo_count <= fifo_count == 2'h2 ? 2'h0 : fifo_count + 1;
             end
             else if (!prism_enable)
@@ -371,7 +372,8 @@ module tqvp_prism (
     end
 
     assign prism_rst_n = rst_n & prism_enable;
-    always @(posedge clk_div2 or negedge prism_rst_n)
+    //always @(posedge clk_div2 or negedge prism_rst_n)
+    always @(posedge clk or negedge prism_rst_n)
     begin
         if (!prism_rst_n)
         begin
@@ -384,6 +386,9 @@ module tqvp_prism (
         end
         else
         begin
+            if (prism_enable && !prism_halt_r)
+                latched_out <= uo_out_c;
+
             // Countdown to zero counter
             if (prism_exec)
             begin
@@ -419,7 +424,7 @@ module tqvp_prism (
                         fifo_wr_ptr <= fifo_wr_ptr + 1;
                 end
 
-                latched_out <= uo_out_c;
+//                latched_out <= uo_out_c;
 
                 // Count the number of shifts
                 if (shift_24 | shift_8)
