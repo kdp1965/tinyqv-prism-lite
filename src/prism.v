@@ -544,7 +544,7 @@ module prism
    reg  [W_DBG_CTRL-1:0]      debug_ctrl0_reg;
    always @(posedge clk or negedge rst_n)
       if (~rst_n)
-         debug_ctrl0_reg = 'h0; 
+         debug_ctrl0_reg <= 'h0; 
       else
          if (debug_ctrl0_en && debug_wr)
             debug_ctrl0_reg <= debug_wdata[W_DBG_CTRL-1:0];
