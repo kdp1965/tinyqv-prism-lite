@@ -132,7 +132,7 @@ module tqvp_prism (
     wire                fifo_full;
     wire                fifo_empty;
     wire                latch_in_out;
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
     reg   [31:0]        latch_data;
     reg                 latch_wr;
     reg                 latch_wr_p0;
@@ -182,7 +182,7 @@ module tqvp_prism (
         .out_data           ( prism_out_data    ),
         .cond_out           ( cond_out          ),
                             
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
         // Latch register control
         .latch_data         ( latch_data        ),
         .latch_wr           ( latch_wr          ),
@@ -299,7 +299,7 @@ module tqvp_prism (
             prism_halt_r    <= 1'b0;
             host_in         <= 2'b0;
             comm_data       <= 8'h0;
-            `ifdef SYNTH_FPGA
+            `ifndef SYNTH_FPGA
             latch_wr        <= 1'b0;
             latch_wr_p0     <= 1'b0;
             latch_data      <= 32'h0;
@@ -309,7 +309,7 @@ module tqvp_prism (
         end
         else
         begin
-            `ifdef SYNTH_FPGA
+            `ifndef SYNTH_FPGA
             // Create a delayed data_write signal for latches
             latch_wr_p0 <= prism_wr;
             latch_wr    <= latch_wr_p0;
@@ -497,7 +497,7 @@ module tqvp_prism (
     assign ctrl_bits_in[13]    = latch_data[13];    // latch5
     assign ctrl_bits_in[14]    = latch_data[30];    // PRISM enable
 
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
     prism_latch_reg
     #(
         .WIDTH ( 15 )

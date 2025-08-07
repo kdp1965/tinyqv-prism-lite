@@ -128,7 +128,7 @@ module prism
    // ============================
    // Latch programming bus
    // ============================
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
    input  wire [31:0]            latch_data,
    input  wire                   latch_wr,
 `endif
@@ -231,7 +231,7 @@ module prism
    assign prism_rst_n = rst_n & fsm_enable;//~debug_reset;
 
    // Instantiate the Latch based SIT
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
    prism_latch_sit
    #(
       .WIDTH   ( RAM_WIDTH     ),
@@ -526,7 +526,7 @@ module prism
    Instantiate the debug_ctrl register
    ===================================================================================== 
    */
-`ifdef SYNTH_FPGA
+`ifndef SYNTH_FPGA
    prism_latch_reg
    #(
       .WIDTH   ( W_DBG_CTRL )
