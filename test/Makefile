@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = prism_periph.v latch_loader.v latch_shift_reg.v prism.v prism_latch_sit.v prism_latch_reg.v
+PROJECT_SOURCES = prism_periph.v latch_loader.v latch_shift_reg.v prism.v prism_latch_sit.v prism_latch_reg.v prism_sr_sit.v
 ADDITIONAL_SOURCES = tt_wrapper.v test_harness/*.sv
 
 ifneq ($(GATES),yes)
@@ -15,6 +15,7 @@ SIM_BUILD				= sim_build/rtl
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(ADDITIONAL_SOURCES))
 COMPILE_ARGS    += -DSIM
+#COMPILE_ARGS    += -DSYNTH_FPGA
 
 else
 
