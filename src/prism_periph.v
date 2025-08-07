@@ -91,6 +91,7 @@ module tqvp_prism (
     wire [OUTPUTS-1:0]  prism_out_data;
     wire [31:0]         prism_read_data;
     reg   [1:0]         host_in;
+    wire                latch_host_in;
     wire                ctrl_reg_en;
     wire                count_reg_en;
     reg  [23:0]         count1;
@@ -454,7 +455,7 @@ module tqvp_prism (
                 // Latch the lower 2 outputs
                 if (latch_in)
                 begin
-                    latched_in  <= {shift_data, ui_in[0]};
+                    latched_in  <= {shift_data, latch_host_in ? host_in[0] : ui_in[0]};
                 end
             end
         end
@@ -468,7 +469,9 @@ module tqvp_prism (
     assign ctrl_reg_en  = address == 6'h00;
     assign count_reg_en = address == 6'h20;
 
-    wire [14:0]   ctrl_bits_out;
+    wire [15:0]   ctrl_bits_out;
+    wire [15:0]   ctrl_bits_in;
+
     assign shift_in_sel        = ctrl_bits_out[1:0];
     assign shift_out_sel       = ctrl_bits_out[3:2];
     assign cond_out_sel        = ctrl_bits_out[5:4];
@@ -480,9 +483,8 @@ module tqvp_prism (
     assign fifo_24             = ctrl_bits_out[11];
     assign count2_dec          = ctrl_bits_out[12];
     assign latch5              = ctrl_bits_out[13];
-    assign prism_enable        = ctrl_bits_out[14];
-
-    wire [14:0]   ctrl_bits_in;
+    assign latch_host_in       = ctrl_bits_out[14];
+    assign prism_enable        = ctrl_bits_out[15];
 
     assign ctrl_bits_in[1:0]   = latch_data[1:0];   // shift_in_sel
     assign ctrl_bits_in[3:2]   = latch_data[3:2];   // shift_out_sel
@@ -495,12 +497,13 @@ module tqvp_prism (
     assign ctrl_bits_in[11]    = latch_data[11];    // fifo_24
     assign ctrl_bits_in[12]    = latch_data[12];    // count2_dec
     assign ctrl_bits_in[13]    = latch_data[13];    // latch5
-    assign ctrl_bits_in[14]    = latch_data[30];    // PRISM enable
+    assign ctrl_bits_in[14]    = latch_data[14];    // latch_host_in
+    assign ctrl_bits_in[15]    = latch_data[30];    // PRISM enable
 
 `ifndef SYNTH_FPGA
     prism_latch_reg
     #(
-        .WIDTH ( 15 )
+        .WIDTH ( 16 )
      )
     ctrl_regs
     (
@@ -525,7 +528,7 @@ module tqvp_prism (
     );
 `else
     reg [31:0] count_preloads;
-    reg [14:0] ctrl_reg;
+    reg [15:0] ctrl_reg;
     always @(posedge clk or negedge rst_n)
     begin
         if (~rst_n)
