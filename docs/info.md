@@ -81,6 +81,8 @@ Inputs to the PRISM engine come from the ui_in[6:0] pins of the TinyTapeout ASIC
 (pin 7 is not used as this is a UART pin for TinyQV).  All 7 ui_in[6:0] pins are
 directly selectable by the running chroma for state transition or conditional output decisions.
 
+![](08_inputs.png)
+
 In addition to direct input to the PRISM, a few inputs also have special functions
 (refer to the diagram below for visual).  Input ui_in[0] can be programmatically latched
 by the chroma using PRISM out[5] when configured via the ctrl_reg latch5 and latch_in_out bits.
@@ -115,8 +117,6 @@ a registered version of the shift_en is used to detect when to transition to the
           end
        end
 
-
-![](08_inputs.png)
 
 ## External PRISM Outputs
 
