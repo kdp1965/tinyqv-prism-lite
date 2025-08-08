@@ -324,10 +324,10 @@ module tqvp_prism (
             
             if ((prism_halt && !prism_halt_r) | (prism_out_data[OUT_COUNT2_CLEAR] & prism_out_data[OUT_COUNT2_INC])) begin
                 prism_interrupt <= 1;
-            end else if (address == 6'h3 && prism_wr)
+            end else if ((address == 6'h3 && prism_wr) | !prism_enable)
             begin
                 // Test for interrupt clear
-                if (data_in[7])
+                if (data_in[7] | !prism_enable)
                     prism_interrupt <= 0;
             end
 
