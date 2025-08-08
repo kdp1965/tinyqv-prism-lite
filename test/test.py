@@ -2,6 +2,7 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
+from chroma_ws2812 import *
 
 from tqv import TinyQV
 
@@ -34,16 +35,16 @@ Config:   tinyqv.cfg
 ==============================================================
 '''
 chroma_spislave = [
-   0x000003c0, 0x08000000, 
-   0x00000380, 0x08010000, 
-   0x00000141, 0x08012003, 
-   0x000003f8, 0x0800a000, 
-   0x00000140, 0x0801a01d, 
-   0x00000380, 0x08010000, 
-   0x00000282, 0x08016003, 
-   0x00000041, 0x08012000, 
+   0x00000bf8, 0x80003a00, 
+   0x00000940, 0x00005a1d, 
+   0x00000b80, 0x00001a00, 
+   0x00000942, 0x0000da03, 
+   0x00000b80, 0x00001a00, 
+   0x00000a81, 0x00009a03, 
+   0x00000a00, 0x80005bc3, 
+   0x00000840, 0x00003a00, 
 ]
-chroma_spislave_ctrlReg = 0x00002912
+chroma_spislave_ctrlReg = 0x00002952
 
 @cocotb.test()
 async def test_project(dut):
@@ -59,6 +60,7 @@ async def test_project(dut):
     output_value = 0
     input_shift = input_value
     spi_data = []
+    spi_rx_data = []
     chroma = ''
     spi_transfer = False
     rx_byte = 0
@@ -120,11 +122,10 @@ async def test_project(dut):
             await RisingEdge(dut.clk)
 
     async def simulate_spimaster():
-        nonlocal spi_data, chroma, spi_transfer, rx_byte
+        nonlocal spi_data, spi_rx_data, chroma, spi_transfer, rx_byte
         val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
         prev_val = int(val_str, 2)
         baud = 16
-        idx  = 0
         rx_byte = 0
 
         while True:
@@ -135,35 +136,29 @@ async def test_project(dut):
             if not spi_transfer:
                continue
 
-            # Get first bit of first byte
-            next_byte = spi_data[idx]
-            idx += 1
-
-            # Set input bit
-            bit = (next_byte >> 7) & 1
-            next_byte = next_byte << 1
-            dut.ui_in[2].value = bit
-
             # Drop chip select
             dut.ui_in[0].value = 0
 
-            for b in range(8): 
-                # Pulse SCLK high
-                await delay(baud)
-                dut.ui_in[1].value = 1
+            # Send all data in spi_data
+            for next_byte in spi_data:
+                rx_byte = 0
+                for b in range(8): 
+                    # Pulse SCLK high and set next MOSI bit
+                    await delay(baud)
+                    bit = (next_byte >> 7) & 1
+                    next_byte = next_byte << 1
+                    dut.ui_in[2].value = bit
+                    dut.ui_in[1].value = 1
+                
+                    # Drive SCLK low
+                    await delay(baud)
+                    dut.ui_in[1].value = 0
+                
+                    # Read MISO line
+                    bit = dut.uo_out[2].value
+                    rx_byte = (rx_byte << 1) | bit
 
-                # Read MISO line
-                bit = dut.uo_out[2].value
-                rx_byte = (rx_byte << 1) | bit
-
-                # Drive SCLK low
-                await delay(baud)
-                dut.ui_in[1].value = 0
-
-                # Set next MOSI bit
-                bit = (next_byte >> 7) & 1
-                next_byte = next_byte << 1
-                dut.ui_in[2].value = bit
+                spi_rx_data.append(rx_byte)
 
             # Raise chip select
             await delay(baud)
@@ -255,7 +250,7 @@ async def test_project(dut):
         assert output_value == 0x00F05077
 
     async def test_chroma_spislave():
-        nonlocal spi_data, chroma, spi_transfer
+        nonlocal spi_data, spi_rx_data, chroma, spi_transfer
 
         # Reset PRISM
         await tqv.write_word_reg(0x00, 0x00000000)
@@ -270,11 +265,11 @@ async def test_project(dut):
         await load_chroma(chroma_spislave, chroma_spislave_ctrlReg)
         
         # Put 24-bit OUTPUT data in the 24-bit Shift register
-        spi_data = [0xF5]
+        spi_data = [0xF5, 0x27]
         chroma = 'spislave'
 
-        # Write a known byte to comm_data register
-        await tqv.write_byte_reg(0x18, 0x67)
+        # Write a known byte to count1_preload register
+        await tqv.write_byte_reg(0x20, 0xF367)
         
         # Start a transfer
         spi_transfer = True 
@@ -289,11 +284,24 @@ async def test_project(dut):
         # Read a byte from the FIFO
         dut._log.info(f"    Testing read byte from FIFO")
         assert await tqv.read_byte_reg(0x19) == 0xF5
+        assert await tqv.read_byte_reg(0x19) == 0x27
+
+        # Test if we received the bytes we expected
+        assert spi_rx_data[0] == 0x67
+        assert spi_rx_data[1] == 0xF3
 
         # Test if the interrupt was set
         dut._log.info(f"    Testing if Interrupt was set")
         assert await tqv.read_word_reg(0) & 0x80000000 != 0
 
+    # ===================================================================================
+    # Test the WS2812 Chroma
+    # ===================================================================================
+    async def test_chroma_ws2812():
+        nonlocal input_value, chroma
+
+        await load_chroma(chroma_ws2812, chroma_ws28212_ctrlReg)
+        
     # Start the simulations
     cocotb.start_soon(simulate_74165())
     cocotb.start_soon(simulate_74595())
@@ -314,11 +322,14 @@ async def test_project(dut):
     # Write values to the count2_compare / count1_preload
     await tqv.write_word_reg(0x00, 0x40000000)
     await ClockCycles(dut.clk, 8)
-    await tqv.write_word_reg(0x20, 0x0300FA12)
+    await tqv.write_word_reg(0x20, 0x0000FA12)
+    await ClockCycles(dut.clk, 8)
+    await tqv.write_word_reg(0x28, 0x00000034)
     await ClockCycles(dut.clk, 8)
 
     dut._log.info("Testing basic control and latch register access")
-    assert await tqv.read_word_reg(0x20) == 0x0300FA12
+    assert await tqv.read_word_reg(0x28) == 0x00000034
+    assert await tqv.read_word_reg(0x20) == 0x0000FA12
     assert await tqv.read_word_reg(0x0) == 0x40000000
 
     await tqv.write_word_reg(0x00, 0x00000000)
@@ -365,5 +376,8 @@ async def test_project(dut):
     await test_chroma_gpio24()
  
     dut._log.info("Testing spislave Chroma")
+    await test_chroma_spislave()
+    
+    dut._log.info("Testing ws2812 Chroma")
     await test_chroma_spislave()
     

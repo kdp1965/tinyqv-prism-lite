@@ -142,13 +142,14 @@ module tqvp_prism (
     assign latch_data = data_in;
 `endif
     wire  [0:0]         cond_out;
-//    wire                clk_div2;
-//    reg                 clk_gate;
 
     // =============================================================
     // Crate a divide by 2 clock using clock gate
     // =============================================================
 `ifdef DONT_COMPILE
+    wire                clk_div2;
+    reg                 clk_gate;
+
     always @(negedge clk or negedge rst_n)
     begin
         if (~rst_n)
@@ -277,7 +278,7 @@ module tqvp_prism (
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {24'h0, fifo_count, fifo_rd_ptr, fifo_wr_ptr, fifo_full, fifo_empty};
             6'h1B:   data_out = {30'h0, host_in};
-            6'h20:   data_out = {8'h0, /*count2_compare,*/ count1_preload};
+            6'h20:   data_out = {8'h0, count1_preload};
             6'h24:   data_out = {count2, count1};
             6'h28:   data_out = {24'h0, count2_compare};
             default: data_out = prism_read_data;
@@ -436,8 +437,6 @@ module tqvp_prism (
                     else
                         fifo_wr_ptr <= fifo_wr_ptr + 1;
                 end
-
-//                latched_out <= uo_out_c;
 
                 // Count the number of shifts
                 if (shift_24 | shift_8)
