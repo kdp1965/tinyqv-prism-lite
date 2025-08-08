@@ -92,7 +92,8 @@ module tqvp_prism (
     wire [31:0]         prism_read_data;
     reg   [1:0]         host_in;
     wire                ctrl_reg_en;
-    wire                count_reg_en;
+    wire                count1_reg_en;
+    wire                count2_reg_en;
     reg  [23:0]         count1;
     wire [23:0]         count1_preload;
     reg   [7:0]         count2;
@@ -276,8 +277,9 @@ module tqvp_prism (
             6'h19:   data_out = {24'h0, fifo_rd_data};
             6'h1A:   data_out = {24'h0, fifo_count, fifo_rd_ptr, fifo_wr_ptr, fifo_full, fifo_empty};
             6'h1B:   data_out = {30'h0, host_in};
-            6'h20:   data_out = {count2_compare, count1_preload};
+            6'h20:   data_out = {8'h0, /*count2_compare,*/ count1_preload};
             6'h24:   data_out = {count2, count1};
+            6'h28:   data_out = {24'h0, count2_compare};
             default: data_out = prism_read_data;
         endcase
     end
@@ -465,8 +467,9 @@ module tqvp_prism (
     Instantiate latch based registers
     ==================================================================================
     */
-    assign ctrl_reg_en  = address == 6'h00;
-    assign count_reg_en = address == 6'h20;
+    assign ctrl_reg_en   = address == 6'h00;
+    assign count1_reg_en = address == 6'h20;
+    assign count2_reg_en = address == 6'h28;
 
     wire [14:0]   ctrl_bits_out;
     wire [14:0]   ctrl_bits_in;
@@ -513,15 +516,28 @@ module tqvp_prism (
 
     prism_latch_reg
     #(
-        .WIDTH ( 32 )
+        .WIDTH ( 24 )
      )
     count_preloads
     (
         .rst_n      ( rst_n                            ),
-        .enable     ( count_reg_en                     ),
+        .enable     ( count1_reg_en                    ),
         .wr         ( latch_wr                         ),
-        .data_in    ( latch_data                       ),
-        .data_out   ( {count2_compare, count1_preload} )
+        .data_in    ( latch_data[23:0]                 ),
+        .data_out   ( count1_preload                   )
+    );
+
+    prism_latch_reg
+    #(
+        .WIDTH ( 8 )
+     )
+    count_compare
+    (
+        .rst_n      ( rst_n                            ),
+        .enable     ( count2_reg_en                    ),
+        .wr         ( latch_wr                         ),
+        .data_in    ( latch_data[7:0]                  ),
+        .data_out   ( count2_compare    )
     );
 `else
     reg [31:0] count_preloads;
@@ -539,8 +555,10 @@ module tqvp_prism (
             if (ctrl_reg_en & prism_wr)
                 ctrl_reg <= ctrl_bits_in;
 
-            if (count_reg_en & prism_wr)
-                count_preloads <= data_in;
+            if (count1_reg_en & prism_wr)
+                count_preloads{23:0] <= data_in;
+            if (count2_reg_en & prism_wr)
+                count_preloads[31:24] <= data_in;
         end
     end
 
