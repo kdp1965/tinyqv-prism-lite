@@ -235,7 +235,7 @@ module tqvp_prism (
     assign prism_in_data[11]    = count2 >= count2_compare;
     assign prism_in_data[13:12] = latch_in_out ? {latched_out[6], latched_out[1]} : latched_in;
     assign prism_in_data[14]    = shift_24_en ? ({fifo_count, shift_count} == 5'b0) : (shift_count == 3'h0);
-    assign prism_in_data[15]    = count2 >= comm_data;
+    assign prism_in_data[15]    = count2 == comm_data;
     assign user_interrupt = prism_interrupt;
 
     assign shift_data     = shift_24_en ? (shift_dir ? count1[0] : count1[23]) : (shift_dir ? comm_data[0] : comm_data[7]);
