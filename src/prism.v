@@ -393,7 +393,7 @@ module prism
          if (compare_match[0] || compare_match[DUAL_COMPARE])
             loop_valid <= 1'b0;
 
-         else if (inc_si && ~loop_valid)
+         else if (inc_si && ~loop_valid && curr_si != {SI_BITS{1'b1}})
          begin
             loop_valid <= 1'b1;
             loop_si <= curr_si;
