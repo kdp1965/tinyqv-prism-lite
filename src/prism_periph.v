@@ -280,7 +280,6 @@ module tqvp_prism (
             6'h20:   data_out = {8'h0, count1_preload};
             6'h24:   data_out = {count2, count1};
             6'h28:   data_out = {24'h0, count2_compare};
-            6'h2C:   data_out = {24'h0, count2_compare};
             default: data_out = prism_read_data;
         endcase
     end
