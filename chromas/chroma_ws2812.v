@@ -17,7 +17,7 @@
 //   4. shift_dir     = 0 (MSB first)
 //   5. shift_out_sel = 1 (Route shift_data to uo_out[2])
 //   6. fifo_24       = 1 (Not using 24-bit reg as FIFO)
-//   7. latch_in_out  = 0 (Readback latched out data [6:1])
+//   7. latch_in_out  = 0 (Readback latched in data {shift_data, cond_out})
 //   8. cond_sel      = 0 (cond_out not used)
 // 
 // We will use:

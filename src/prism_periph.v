@@ -94,6 +94,7 @@ module tqvp_prism (
     wire                ctrl_reg_en;
     wire                count1_reg_en;
     wire                count2_reg_en;
+    wire                count2_toggle_en;
     reg  [23:0]         count1;
     wire [23:0]         count1_preload;
     reg   [7:0]         count2;
@@ -325,10 +326,10 @@ module tqvp_prism (
             
             if ((prism_halt && !prism_halt_r) | (prism_out_data[OUT_COUNT2_CLEAR] & prism_out_data[OUT_COUNT2_INC])) begin
                 prism_interrupt <= 1;
-            end else if ((address == 6'h3 && prism_wr) | !prism_enable)
+            end else if (((address == 6'h3 || count2_toggle_en) && prism_wr) | !prism_enable)
             begin
                 // Test for interrupt clear
-                if (data_in[7] | !prism_enable)
+                if (data_in[7] | !prism_enable | count2_toggle_en)
                     prism_interrupt <= 0;
             end
 
@@ -337,6 +338,8 @@ module tqvp_prism (
                 host_in  <= data_in[25:24];
             else if (address == 6'h1b && data_write_n == 2'b00)
                 host_in  <= data_in[1:0];
+            else if (count2_toggle_en && data_write_n != 2'h11)
+                host_in[0] <= ~host_in[0];
 
             // Latch comm_data
             if (address == 6'h18 && data_write_n != 2'b11)
@@ -464,9 +467,10 @@ module tqvp_prism (
     Instantiate latch based registers
     ==================================================================================
     */
-    assign ctrl_reg_en   = address == 6'h00;
-    assign count1_reg_en = address == 6'h20;
-    assign count2_reg_en = address == 6'h28;
+    assign ctrl_reg_en      = address == 6'h00;
+    assign count1_reg_en    = address == 6'h20;
+    assign count2_reg_en    = address == 6'h28;
+    assign count2_toggle_en = address == 6'h29;
 
     wire [14:0]   ctrl_bits_out;
     wire [14:0]   ctrl_bits_in;
@@ -531,7 +535,7 @@ module tqvp_prism (
     count_compare
     (
         .rst_n      ( rst_n                            ),
-        .enable     ( count2_reg_en                    ),
+        .enable     ( count2_reg_en | count2_toggle_en ),
         .wr         ( latch_wr                         ),
         .data_in    ( latch_data[7:0]                  ),
         .data_out   ( count2_compare    )
@@ -554,7 +558,7 @@ module tqvp_prism (
 
             if (count1_reg_en & prism_wr)
                 count_preloads{23:0] <= data_in;
-            if (count2_reg_en & prism_wr)
+            if ((count2_reg_en | count2_toggle_en) & prism_wr)
                 count_preloads[31:24] <= data_in;
         end
     end
