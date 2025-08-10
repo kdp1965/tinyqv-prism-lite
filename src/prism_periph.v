@@ -280,6 +280,7 @@ module tqvp_prism (
             6'h20:   data_out = {8'h0, count1_preload};
             6'h24:   data_out = {count2, count1};
             6'h28:   data_out = {24'h0, count2_compare};
+            6'h2C:   data_out = {24'h0, count2_compare};
             default: data_out = prism_read_data;
         endcase
     end
@@ -470,7 +471,7 @@ module tqvp_prism (
     assign ctrl_reg_en      = address == 6'h00;
     assign count1_reg_en    = address == 6'h20;
     assign count2_reg_en    = address == 6'h28;
-    assign count2_toggle_en = address == 6'h29;
+    assign count2_toggle_en = address == 6'h2C;
 
     wire [14:0]   ctrl_bits_out;
     wire [14:0]   ctrl_bits_in;
