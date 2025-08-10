@@ -338,7 +338,7 @@ module tqvp_prism (
                 host_in  <= data_in[25:24];
             else if (address == 6'h1b && data_write_n == 2'b00)
                 host_in  <= data_in[1:0];
-            else if (count2_toggle_en && data_write_n != 2'h11)
+            else if (count2_toggle_en && data_write_n != 2'b11)
                 host_in[0] <= ~host_in[0];
 
             // Latch comm_data
