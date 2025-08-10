@@ -575,6 +575,7 @@ module prism
 
       2'h3:   begin
                   case (debug_addr[3:0])
+                  4'h0:    data_out = {    3'd1,   3'd2,    6'd32,   6'd24,  6'd32,     2'h3,  3'h5,   3'h3};
                   4'h4: debug_rdata_prism = decision_tree_data;
                   4'h8: debug_rdata_prism = {{(32-OUTPUTS){1'b0}}, out_data};
                   4'hc: debug_rdata_prism = {{(32-INPUTS){1'b0}}, in_data};
