@@ -16,4 +16,4 @@ chroma_gpio24 = [
    0x000003c0, 0x08004000, 
    0x00000288, 0x00012010, 
 ]
-chroma_gpio24_ctrlReg = 0x00000598
+chroma_gpio24_ctrlReg = 0x000005D4

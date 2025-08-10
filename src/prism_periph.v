@@ -120,9 +120,9 @@ module tqvp_prism (
     wire                shift_24;
     wire                shift_8;
     wire                latch_in;
-    wire                latch5;
+    wire                latch0;
     wire                load4;
-    wire                out5_fifo_full;
+    wire                out0_fifo_full;
     reg   [1:0]         fifo_wr_ptr;
     reg   [1:0]         fifo_rd_ptr;
     reg   [1:0]         fifo_count;
@@ -220,11 +220,9 @@ module tqvp_prism (
     // We don't use uo_out0 so it can be used for comms with RISC-V
     // Assign outputs based on conditional enable or latched enable
     // NOTE:  prism_out_data[6] is actually OUT_SHIFT, not a dedicated pin_out
-    assign uo_out_c[0]   =  prism_out_data[0];
-    assign uo_out_c[3:1] = (prism_out_data[3:1] & ~shift_out[3:1] & ~cond_out_en[3:1])   | (cond_out_en[3:1] & {3{cond_out[0]}}) | (shift_out[3:1]   & {3{shift_data}});
-    assign uo_out_c[4]   = prism_out_data[4];
-    assign uo_out_c[5]   = (prism_out_data[5]   & ~out5_fifo_full)                       | (out5_fifo_full & fifo_full);
-    assign uo_out_c[6]   = prism_out_data[6];
+    assign uo_out_c[0]   = (prism_out_data[0]   & ~out0_fifo_full)   | (out0_fifo_full & fifo_full);
+    assign uo_out_c[3:1] = (prism_out_data[3:1] & ~cond_out_en[3:1]) | (cond_out_en[3:1] & {3{cond_out[0]}});
+    assign uo_out_c[6:4] = (prism_out_data[6:4] & ~shift_out[3:1])   | (shift_out[3:1]   & {3{shift_data}});
 
     assign uo_out[7:1]   = latched_out;
     assign uo_out[0]     = 1'b0;
@@ -246,11 +244,11 @@ module tqvp_prism (
     assign fifo_read      = fifo_24 && data_read_n == 2'b00 && address == 6'h19;
     assign fifo_full      = fifo_24 && fifo_count == 2'h2;
     assign fifo_empty     = fifo_24 && fifo_count == 2'h0;
-    assign out5_fifo_full = fifo_24 & latch5;
+    assign out0_fifo_full = fifo_24 & latch0;
 
     // Assign shift mode
     assign shift_mode = {shift_24_en, shift_en};
-    assign latch_in   = latch5 && prism_out_data[OUT_COUNT2_DEC];
+    assign latch_in   = latch0 && prism_out_data[OUT_COUNT2_DEC];
     assign shift_24   = shift_mode == 2'b11 && prism_out_data[OUT_SHIFT];
     assign shift_8    = shift_mode == 2'b01 && prism_out_data[OUT_SHIFT];
 
@@ -272,7 +270,7 @@ module tqvp_prism (
         case (address)
             6'h0:    data_out = {prism_interrupt, prism_enable, 6'h0,
                                 ui_in[7], latched_out,
-                                2'h0, latch5, count2_dec, fifo_24, shift_24_en, shift_dir, shift_en,
+                                2'h0, latch0, count2_dec, fifo_24, shift_24_en, shift_dir, shift_en,
                                 latch_in_out, load4, cond_out_sel, shift_out_sel, shift_in_sel};
             6'h18:   data_out = {6'h0, host_in, 2'h0, fifo_rd_ptr, fifo_wr_ptr, fifo_full, fifo_empty, fifo_rd_data, comm_data};
             6'h19:   data_out = {24'h0, fifo_rd_data};
@@ -483,7 +481,7 @@ module tqvp_prism (
     assign shift_24_en         = ctrl_bits_out[10];
     assign fifo_24             = ctrl_bits_out[11];
     assign count2_dec          = ctrl_bits_out[12];
-    assign latch5              = ctrl_bits_out[13];
+    assign latch0              = ctrl_bits_out[13];
     assign prism_enable        = ctrl_bits_out[14];
 
     assign ctrl_bits_in[1:0]   = latch_data[1:0];   // shift_in_sel
@@ -496,7 +494,7 @@ module tqvp_prism (
     assign ctrl_bits_in[10]    = latch_data[10];    // shift_24_en
     assign ctrl_bits_in[11]    = latch_data[11];    // fifo_24
     assign ctrl_bits_in[12]    = latch_data[12];    // count2_dec
-    assign ctrl_bits_in[13]    = latch_data[13];    // latch5
+    assign ctrl_bits_in[13]    = latch_data[13];    // latch0
     assign ctrl_bits_in[14]    = latch_data[30];    // PRISM enable
 
 `ifndef SYNTH_FPGA

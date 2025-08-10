@@ -23,4 +23,4 @@ const uint32_t chroma_gpio24[] =
 };
 const uint32_t chroma_gpio24_count   = 8;
 const uint32_t chroma_gpio24_width   = 44;
-const uint32_t chroma_gpio24_ctrlReg = 0x00000598;
+const uint32_t chroma_gpio24_ctrlReg = 0x000005D4;

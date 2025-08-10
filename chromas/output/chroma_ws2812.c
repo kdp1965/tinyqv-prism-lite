@@ -1,12 +1,16 @@
-'''
+/*
 ==============================================================
 PRISM Downloadable Configuration
 
 Input:    chroma_ws2812.sv
 Config:   tinyqv.cfg
 ==============================================================
-'''
-chroma_ws2812 = [
+*/
+
+#include <stdint.h>
+
+const uint32_t chroma_ws2812[] =
+{
    0x00000bc0, 0x00001000, 
    0x00000940, 0x0000301d, 
    0x00000aa2, 0x0200d01e, 
@@ -15,5 +19,8 @@ chroma_ws2812 = [
    0x00000960, 0x0a01900f, 
    0x00000a90, 0x0a01501e, 
    0x000009b9, 0x000031b0, 
-]
-chroma_ws2812_ctrlReg = 0x00002500
+
+};
+const uint32_t chroma_ws2812_count   = 8;
+const uint32_t chroma_ws2812_width   = 44;
+const uint32_t chroma_ws2812_ctrlReg = 0x00002500;

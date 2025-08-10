@@ -24,7 +24,7 @@ chroma_gpio24 = [
    0x000003c0, 0x08004000, 
    0x00000288, 0x00012010, 
 ]
-chroma_gpio24_ctrlReg = 0x00000598
+chroma_gpio24_ctrlReg = 0x000005D4
 
 '''
 ==============================================================
@@ -51,7 +51,7 @@ async def test_project(dut):
     dut._log.info("Start")
 
     # Set the clock period to 100 ns (10 MHz)
-    clock = Clock(dut.clk, 100, units="ns")
+    clock = Clock(dut.clk, 16, units="ns")
     cocotb.start_soon(clock.start())
 
     # Setup simulated external devices
@@ -112,7 +112,7 @@ async def test_project(dut):
                 output_value = output_shift
             elif ((prev_val ^ curr_val) & (1 << 7)) and (curr_val & (1 << 7)):
                 # On shift, shift in from uo_out[3]
-                bit = int(dut.uo_out[3].value)
+                bit = int(dut.uo_out[5].value)
                 output_shift = ((output_shift << 1) | bit) & 0xFFFFFF
             prev_val = curr_val
 
@@ -300,7 +300,28 @@ async def test_project(dut):
     async def test_chroma_ws2812():
         nonlocal input_value, chroma
 
-        await load_chroma(chroma_ws2812, chroma_ws28212_ctrlReg)
+        # Reset PRISM
+        await tqv.write_word_reg(0x00, 0x00000000)
+        chroma = ''
+
+        await tqv.write_byte_reg(0x1b, 0x00)
+        await load_chroma(chroma_ws2812, chroma_ws2812_ctrlReg)
+
+        # Program the count2_compare with 0.8uS count (64Mhz / 1.25Mhz = 51)
+        await tqv.write_byte_reg(0x28, 51)
+
+        # Program the comm_data register with 0.4uS count (64Mhz /2.5Mhz = 26)
+        await tqv.write_byte_reg(0x18, 26)
+
+        # Program count1_preload register with GRB data to send
+        await tqv.write_word_reg(0x20, 0x00FF5367)
+
+        # Set host bit 0 to start transfer
+        await tqv.write_byte_reg(0x1b, 0x01)
+
+        for i in range(5000):
+            await RisingEdge(dut.clk)
+
         
     # Start the simulations
     cocotb.start_soon(simulate_74165())
@@ -379,5 +400,5 @@ async def test_project(dut):
     await test_chroma_spislave()
     
     dut._log.info("Testing ws2812 Chroma")
-    await test_chroma_spislave()
+    await test_chroma_ws2812()
     

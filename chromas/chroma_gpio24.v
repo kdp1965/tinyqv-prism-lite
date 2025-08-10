@@ -13,7 +13,7 @@
 // 2. shift_24_le   = 1 (Enable 24-bit shift)
 // 3. shift_en      = 1 (Enable shift operation)
 // 4. shift_dir     = 0 (MSB first)
-// 5. shift_out_sel = 2 (Route shift_data to uo_out[3])
+// 5. shift_out_sel = 1 (Route shift_data to uo_out[4])
 // 6. fifo_24       = 0 (Not using 24-bit reg as FIFO)
 // 7. latch_in_out  = 1 (Readback latched out data [6:1])
 // 8. cond_sel      = 1 (Route cond_out to uo_out[2])
@@ -23,7 +23,7 @@
 //   ============    ===========   ======================
 //   prism_out[0]    (uo_out[1])   GPIO load_bar 75165
 //   cond_out[0]     (uo_out[2])   GPIO store for 74595
-//   shift_data      (uo_out[3])   Shift data out
+//   shift_data      (uo_out[4])   Shift data out
 //   prism_out[6]    (uo_out[7])   Shift clock (shift_en)
 //
 //   prism_in[0]  (ui_in[0]):   Shift data in
@@ -94,15 +94,16 @@ module chroma_gpio24
 
    // Control Register State
    localparam [1:0]  SHIFT_IN_SEL       = 2'h0;  // Shift input data on ui_in[0]
-   localparam [1:0]  SHIFT_OUT_SEL      = 2'h2;  // Enable 24-bit shift
-   localparam [2:0]  COND_OUT_SEL       = 3'h1;  // Enable shift operation
-   localparam [0:0]  LATCH_IN_OUT       = 1'b1;  // MSB first
-   localparam [0:0]  SHIFT_EN           = 1'b1;  // Route shift_data to uo_out[3]
-   localparam [0:0]  SHIFT_DIR          = 1'b0;  // Not using 24-bit reg as FIFO
-   localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Readback latched out data [6:1]
-   localparam [0:0]  FIFO_24            = 1'b0;  // Route cond_out to uo_out[2]
+   localparam [1:0]  SHIFT_OUT_SEL      = 2'h1;  // Route shift_data to uo_out[4] 
+   localparam [1:0]  COND_OUT_SEL       = 2'h1;  // Route cond_out to uo_out[2]
+   localparam [0:0]  LOAD4              = 1'b1;  // Not using out[4] to load from count2_preload FIFO 
+   localparam [0:0]  LATCH_IN_OUT       = 1'b1;  // Readback latched out data [6,1]
+   localparam [0:0]  SHIFT_EN           = 1'b1;  // Enable shift operation
+   localparam [0:0]  SHIFT_DIR          = 1'b0;  // MSB first
+   localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
+   localparam [0:0]  FIFO_24            = 1'b0;  // Not using 24-bit reg as FIFO
    localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
-   localparam [0:0]  LATCH5             = 1'b0;  // Use prism_out[5] as input latch enable
+   localparam [0:0]  LATCH0             = 1'b0;  // Use prism_out[0] as input latch enable
 
    reg   [2:0]    curr_state, next_state;
 
@@ -111,12 +112,13 @@ module chroma_gpio24
    // Wires to map inputs
    // =======================================================
    wire [6:0]     pin_in;
-   wire           shift_in_data;
+   wire           shift_out_data;
    wire [1:0]     host_in;
    wire [1:0]     pin_compare;
    wire           count1_zero;
    wire           count2_equal;
    wire           shift_zero;
+   wire           count2_eq_comm;
 
    // =======================================================
    // Wires to map outputs based on PRISM RTL
@@ -135,16 +137,17 @@ module chroma_gpio24
    // =======================================================
    // assign in_data from array
    //
-   // This assignment is specific to the application in which
-   // the prism_fsm is being used. 
+   // These assignments represent the TinyQV PRISM peripheral
+   // hardware inputs.
    // =======================================================
-   assign pin_in           = in_data[6:0];
-   assign shift_in_data    = in_data[7];
-   assign host_in          = in_data[9:8];
-   assign count1_zero      = in_data[10];
-   assign count2_equal     = in_data[11];
-   assign pin_compare      = in_data[13:12];
-   assign shift_zero       = in_data[14];
+   assign pin_in               = in_data[6:0];
+   assign shift_out_data       = in_data[7];
+   assign host_in              = in_data[9:8];
+   assign count1_zero          = in_data[10];
+   assign count2_equal         = in_data[11];
+   assign pin_compare          = in_data[13:12];
+   assign shift_zero           = in_data[14];
+   assign count2_eq_comm       = in_data[15];
 
    // Assign out_data to array
    assign out_data[5:0]        = pin_out;
@@ -155,7 +158,9 @@ module chroma_gpio24
    assign out_data[10]         = count2_clear;
    assign cond_out[GPIO_STORE] = gpio_store;
 
-   // Assign FSM specific defined pins
+   // =======================================================
+   // Assign Chroma specific defined pins
+   // =======================================================
    assign shift_clk_in         = in_data[13];
 
    /*
@@ -184,7 +189,7 @@ module chroma_gpio24
       next_state = curr_state;
 
       // Defaults outputs
-      pin_out[0]     = 1'b1;
+      pin_out[0]     = 1'b1;     // Out[0] is active LOW so drive it high as default
       pin_out[5:1]   = 5'h0;
       count1_dec     = 1'b0;
       count1_load    = 1'b0;
@@ -192,8 +197,8 @@ module chroma_gpio24
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       gpio_store     = 1'b0;
-      ctrl_reg       = {18'h0, LATCH5, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
-                        LATCH_IN_OUT, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
+      ctrl_reg       = {18'h0, LATCH0, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+                        LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // =========================================================
       // State machine logic
@@ -202,7 +207,7 @@ module chroma_gpio24
       // =========================================================
       case (curr_state)
 
-      STATE_IDLE:       // State 0
+      STATE_IDLE:                // State 0
          begin
             // Detect I/O shift start 
             if (host_in[HOST_START])
@@ -217,12 +222,12 @@ module chroma_gpio24
             end
          end
 
-      STATE_LATCH_INPUTS:  // State 1
+      STATE_LATCH_INPUTS:        // State 1
          begin
             next_state = STATE_SHIFT_BITS;
          end
       
-      STATE_SHIFT_BITS:    // State 2
+      STATE_SHIFT_BITS:          // State 2
          begin
             // Shift the next bit out
             shift_en = 1'b1;
@@ -235,7 +240,7 @@ module chroma_gpio24
             end
          end
 
-      STATE_DELAY:         // State 3
+      STATE_DELAY:               // State 3
          begin
             // This is a delay state because external 74xxx don't run at 32MHz
             // Test if we are done shifting
