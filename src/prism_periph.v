@@ -470,7 +470,7 @@ module tqvp_prism (
     assign ctrl_reg_en      = address == 6'h00;
     assign count1_reg_en    = address == 6'h20;
     assign count2_reg_en    = address == 6'h28;
-    assign count2_toggle_en = address == 6'h29;
+    assign count2_toggle_en = address == 6'h2c;
 
     wire [14:0]   ctrl_bits_out;
     wire [14:0]   ctrl_bits_in;
