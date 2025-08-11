@@ -322,6 +322,17 @@ async def test_project(dut):
         for i in range(5000):
             await RisingEdge(dut.clk)
 
+        # Test if the interrupt was set
+        dut._log.info(f"    Testing if Interrupt was set")
+        assert await tqv.read_word_reg(0) & 0x80000000 != 0
+
+        # Test if the interrupt was set
+        dut._log.info(f"    Writing new data using auto-toggle")
+        await tqv.write_word_reg(0x21, 0x0036FE0C)
+
+        dut._log.info(f"    Testing if Interrupt was cleared")
+        assert await tqv.read_word_reg(0) & 0x80000000 != 0
+
         
     # Start the simulations
     cocotb.start_soon(simulate_74165())
