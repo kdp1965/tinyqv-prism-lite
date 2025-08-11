@@ -78,7 +78,7 @@ module chroma_ws2812
    localparam [1:0]  SHIFT_OUT_SEL      = 2'h0;  // Not using shift out
    localparam [1:0]  COND_OUT_SEL       = 2'h0;  // Route cond_out to uo_out[2]
    localparam [0:0]  LOAD4              = 1'b0;  // Not using out[4] to load from count2_preload FIFO 
-   localparam [0:0]  LATCH_IN_OUT       = 1'b0;  // Readback latched in data {shift_data,ui_in[0]}
+   localparam [0:0]  LATCH_IN_OUT       = 1'b0;  // Readback latched in data {shift_data,cond_out[0]}
    localparam [0:0]  SHIFT_EN           = 1'b1;  // Enable shift operation
    localparam [0:0]  SHIFT_DIR          = 1'b0;  // MSB first
    localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
@@ -140,7 +140,7 @@ module chroma_ws2812
    assign out_data[10]         = count2_clear;
 
    // Chroma specific pin assignments
-   assign host_in_prev          = in_data[13];
+   assign host_in_prev          = in_data[12];
    
    /*
    ==========================================================

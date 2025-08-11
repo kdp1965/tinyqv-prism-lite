@@ -134,10 +134,13 @@ shift operation (via enable bits in the ctrl_reg).
 
 Outputs uo_out[4:2] can be driven either directly from PRISM out[3:1], or can have muxed data:
 
- - shift_out_sel (2-bits) when non-zero selects 8 or 24 bit shift out data.
  - cond_out_sel (2-bits) when non-zero selects cond_out[0] conditional output.
 
-Output uo_out[6] can be driven either directly from PRISM out[5] or can be the "fifo_full" signal
+Outputs uo_out[7:5] can be driven either directly from PRISM out[6:4], or can have muxed data:
+
+ - shift_out_sel (2-bits) when non-zero selects 8 or 24 bit shift out data.
+
+Output uo_out[0] can be driven either directly from PRISM out[0] or can be the "fifo_full" signal
 when fifo_24 and latch5 config bits are set in ctrl_reg (more on those bits in the 3-Byte FIFO section).
 
 ## Peripherals

@@ -61,6 +61,7 @@ async def test_project(dut):
     input_shift = input_value
     spi_data = []
     spi_rx_data = []
+    grb = 0
     chroma = ''
     spi_transfer = False
     rx_byte = 0
@@ -166,6 +167,52 @@ async def test_project(dut):
 
             # Clear spi_transfer so we don't send over and over
             spi_transfer = False;
+
+    async def simulate_ws2822_slave():
+        nonlocal chroma, grb
+        val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+        prev_val = int(val_str, 2) & 2
+        baud = 16
+        grb  = 0
+        clk_count = 0
+        bit_count = 0;
+
+        while True:
+            # Wait for either posedge uo_out[7] (shift clk) or posedge uo_out[2] (store)
+            await RisingEdge(dut.clk)
+            if chroma != 'ws2812':
+               continue
+
+            # Keep track of the number of clocks between edges
+            clk_count += 1
+
+            # Test for change in WS2812 data line
+            val_str = dut.uo_out.value.binstr.replace('x', '0').replace('z', '0')
+            val = int(val_str, 2) & 2
+            if val == prev_val:
+               continue
+
+            # Test if the count exceeded the "reset bus" value
+            if clk_count >= 1280 and prev_val == 0:
+               clk_count = 0 
+               grb = 0
+               prev_val = val
+               continue
+            elif prev_val == 0:
+               prev_val = val
+               clk_count = 0
+               continue
+
+            # Test for transition from HIGH to LOW
+            if prev_val != 0:
+               # Shift the grb data
+               grb <<= 1
+
+               # Test for a '1' bit
+               if clk_count >= 35:
+                  grb |= 1
+
+            prev_val = val
 
     async def load_chroma(chroma, ctrl_reg):
         '''
@@ -316,28 +363,37 @@ async def test_project(dut):
         # Program count1_preload register with GRB data to send
         await tqv.write_word_reg(0x20, 0x00FF5367)
 
+        chroma = 'ws2812'
+
         # Set host bit 0 to start transfer
         await tqv.write_byte_reg(0x1b, 0x01)
 
-        for i in range(5000):
+        for i in range(6000):
             await RisingEdge(dut.clk)
 
         # Test if the interrupt was set
         dut._log.info(f"    Testing if Interrupt was set")
         assert await tqv.read_word_reg(0) & 0x80000000 != 0
 
-        # Test if the interrupt was set
+        # Test if data was received
+        assert grb == 0xFF5367
+
+        # Write new data using auto-toggle of host_in[0]
         dut._log.info(f"    Writing new data using auto-toggle")
         await tqv.write_word_reg(0x21, 0x0036FE0C)
 
         dut._log.info(f"    Testing if Interrupt was cleared")
         assert await tqv.read_word_reg(0) & 0x80000000 != 0
 
+        dut._log.info(f"    Testing if host_in[0] toggled")
+        assert await tqv.read_byte_reg(0x1b) == 0
+
         
     # Start the simulations
     cocotb.start_soon(simulate_74165())
     cocotb.start_soon(simulate_74595())
     cocotb.start_soon(simulate_spimaster())
+    cocotb.start_soon(simulate_ws2822_slave())
 
     # Interact with your design's registers through this TinyQV class.
     # This will allow the same test to be run when your design is integrated
@@ -404,12 +460,13 @@ async def test_project(dut):
     # Okay, now load up a real design and see if it does anything
     # This is the 24-Bit GPIO Chroma
     # ===========================================================
+    
+    dut._log.info("Testing ws2812 Chroma")
+    await test_chroma_ws2812()
+
     dut._log.info("Testing gpio24 Chroma")
     await test_chroma_gpio24()
  
     dut._log.info("Testing spislave Chroma")
     await test_chroma_spislave()
-    
-    dut._log.info("Testing ws2812 Chroma")
-    await test_chroma_ws2812()
     

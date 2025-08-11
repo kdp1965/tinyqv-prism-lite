@@ -18,7 +18,7 @@ const uint32_t chroma_ws2812[] =
    0x00000aa0, 0x0a01b016, 
    0x00000960, 0x0a01900f, 
    0x00000a90, 0x0a01501e, 
-   0x000009b9, 0x000031b0, 
+   0x000009b9, 0x00003190, 
 
 };
 const uint32_t chroma_ws2812_count   = 8;
