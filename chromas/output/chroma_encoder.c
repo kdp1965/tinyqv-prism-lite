@@ -1,0 +1,26 @@
+/*
+==============================================================
+PRISM Downloadable Configuration
+
+Input:    chroma_encoder.sv
+Config:   tinyqv.cfg
+==============================================================
+*/
+
+#include <stdint.h>
+
+const uint32_t chroma_encoder[] =
+{
+   0x00000bc0, 0x0000e000, 
+   0x00000bc0, 0x0000c000, 
+   0x00000bc0, 0x0000a000, 
+   0x00000bd0, 0x00000000, 
+   0x00000a41, 0x00000021, 
+   0x00000984, 0x40800180, 
+   0x00000a84, 0x00806015, 
+   0x00000988, 0x40002180, 
+
+};
+const uint32_t chroma_encoder_count   = 8;
+const uint32_t chroma_encoder_width   = 44;
+const uint32_t chroma_encoder_ctrlReg = 0x00003000;

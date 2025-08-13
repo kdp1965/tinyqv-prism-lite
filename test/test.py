@@ -3,48 +3,12 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
 from chroma_ws2812 import *
+from chroma_spislave import *
+from chroma_encoder import *
+from chroma_gpio24 import *
+from encoder import *
 
 from tqv import TinyQV
-
-'''
-==============================================================
-PRISM Downloadable Configuration
-
-Input:    chroma_gpio24.sv
-Config:   tinyqv.cfg
-==============================================================
-'''
-chroma_gpio24 = [
-   0x000003c0, 0x08000000, 
-   0x000003c0, 0x08000000, 
-   0x00000140, 0x08010010, 
-   0x00000bc0, 0x0800b200, 
-   0x00000140, 0x0801401d, 
-   0x00000280, 0x0841601a, 
-   0x000003c0, 0x08004000, 
-   0x00000288, 0x00012010, 
-]
-chroma_gpio24_ctrlReg = 0x000005D4
-
-'''
-==============================================================
-PRISM Downloadable Configuration
-
-Input:    chroma_spislave.sv
-Config:   tinyqv.cfg
-==============================================================
-'''
-chroma_spislave = [
-   0x00000bf8, 0x80003a00, 
-   0x00000940, 0x00005a1d, 
-   0x00000b80, 0x00001a00, 
-   0x00000942, 0x0000da03, 
-   0x00000b80, 0x00001a00, 
-   0x00000a81, 0x00009a03, 
-   0x00000a00, 0x80005bc3, 
-   0x00000840, 0x00003a00, 
-]
-chroma_spislave_ctrlReg = 0x00002952
 
 @cocotb.test()
 async def test_project(dut):
@@ -159,6 +123,7 @@ async def test_project(dut):
                     bit = dut.uo_out[2].value
                     rx_byte = (rx_byte << 1) | bit
 
+                dut._log.info(f"    RX: {rx_byte:02X}")
                 spi_rx_data.append(rx_byte)
 
             # Raise chip select
@@ -388,12 +353,53 @@ async def test_project(dut):
         dut._log.info(f"    Testing if host_in[0] toggled")
         assert await tqv.read_byte_reg(0x1b) == 0
 
+    # ===================================================================================
+    # Test the Encoder Chroma
+    # ===================================================================================
+    async def test_chroma_encoder(clocks_per_phase, encoder0):
+        nonlocal input_value, chroma
+
+        # Reset PRISM
+        await tqv.write_word_reg(0x00, 0x00000000)
+        chroma = ''
+
+        await tqv.write_byte_reg(0x1b, 0x00)
+        await load_chroma(chroma_encoder, chroma_encoder_ctrlReg)
+
+        # Program the count1_preload with debounce count (128 for shorter test)
+        await tqv.write_byte_reg(0x20, 128)
+
+        # Not really needed, but for completeness
+        chroma = 'encoder'
+
+        # twist the encoder knob
+        dut._log.info("    Checking encoder 0")
+        for i in range(clocks_per_phase * 2 * 20):
+            await encoder0.update(1)
+
+        # Read the count2 count
+        dut._log.info("    Testing count2 value")
+        count = await tqv.read_word_reg(0x24) >> 24
+        assert count == 20
+
+        # twist the encoder knob the other way
+        dut._log.info("    Checking encoder 0")
+        for i in range(clocks_per_phase * 2 * 12):
+            await encoder0.update(-1)
+
+        dut._log.info("    Testing count2 value")
+        count = await tqv.read_word_reg(0x24) >> 24
+        assert count == 8
+
         
     # Start the simulations
     cocotb.start_soon(simulate_74165())
     cocotb.start_soon(simulate_74595())
     cocotb.start_soon(simulate_spimaster())
     cocotb.start_soon(simulate_ws2822_slave())
+
+    clocks_per_phase = 600 
+    encoder0 = Encoder(dut.clk, dut.ui_in[0], dut.ui_in[1], clocks_per_phase = clocks_per_phase, noise_cycles = clocks_per_phase / 8)
 
     # Interact with your design's registers through this TinyQV class.
     # This will allow the same test to be run when your design is integrated
@@ -461,6 +467,9 @@ async def test_project(dut):
     # This is the 24-Bit GPIO Chroma
     # ===========================================================
     
+    dut._log.info("Testing encoder Chroma")
+    await test_chroma_encoder(clocks_per_phase, encoder0)
+
     dut._log.info("Testing ws2812 Chroma")
     await test_chroma_ws2812()
 

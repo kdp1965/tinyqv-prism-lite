@@ -1,22 +1,24 @@
 // =======================================================
-// PRISM GPIO-24 Chroma
+// PRISM Encoder chroma
 //
 // This is a Chroma (personality) for the TinyQV PRISM
-// peripheral. It implements a WS2412 "NeoPixel" driver
-// capable of driving a string of RGB addressable LEDs.
+// peripheral. It implements a rotary encoder that increments
+// or decrements the count in count2 depending on the direction
+// and speed of rotation.
 //
 // FSM Deined pin assignments.
 //   PRISM_SIGNAL    TT Pin        Function
 //   ============    ===========   ======================
-//   prism_out[0]    uo_out[1]     Output data
+//   prism_in[0]     ui_in[0]      Rotary input a
+//   prism_in[1]     ui_in[1]      Rotary input b
 //
 // This assumes:
-//   1. shift_in_sel  = 2 (Shift input data on ui_in[2])
+//   1. shift_in_sel  = 0 (Shift input data on ui_in[2])
 //   2. shift_24_le   = 0 (Enable 8-bit shift)
-//   3. shift_en      = 1 (Enable shift operation)
+//   3. shift_en      = 0 (Disalbe shift operation)
 //   4. shift_dir     = 0 (MSB first)
-//   5. shift_out_sel = 1 (Route shift_data to uo_out[2])
-//   6. fifo_24       = 1 (Not using 24-bit reg as FIFO)
+//   5. shift_out_sel = 0 (Route shift_data to uo_out[2])
+//   6. fifo_24       = 0 (Not using 24-bit reg as FIFO)
 //   7. latch_in_out  = 0 (Readback latched in data {shift_data, cond_out})
 //   8. cond_sel      = 0 (cond_out not used)
 // 
@@ -25,21 +27,22 @@
 // Diagram of our "circuit" for SPI Slave
 //                                                                             
 //  +-----------------------------+                          
-//  |                             |                           
-//  |            PRISM            |                          
-//  |                             |      +------------+      
-//  |                             |      |            |      
-//  |  +-------------+            |      |  NeoPixel  |      
-//  |  |   24-bit    |            |      |   LEDs     |      
-//  |  |  shift Reg  |            |      |            |      
-//  |  |       shift |  uo_out[0] |----->| Data       |      
-//  |  +-------------+            |      |            |      
-//  |                             |      |            |      
-//  |  +---------------+          |      |            |      
-//  |  | 8-bit Counter |          |      +------------+      
-//  |  |    used as    |          |                             
-//  |  |   bit timer   |          |                             
-//  |  +---------------+          |                    
+//  |                             |      +------------+       
+//  |            PRISM            |      |            |      
+//  |                             |      |  Rotary    |      
+//  |                             |      |  Encoder   |      
+//  |  +-------------+    ui_in[0]|      |            |      
+//  |  |   24-bit    |<-----------|------+ Output A   |      
+//  |  |  debounce   |    ui_in[1]|      |            |      
+//  |  |   counter   |<-----------|------+ Output B   |      
+//  |  +------+------+            |      |            |      
+//  |         |                   |      +------------+      
+//  |         v                   |
+//  |  +----------------------+   |                          
+//  |  | 8-bit up/dn Counter  |   |                          
+//  |  | used to track pulses |   |                             
+//  |  | and rotation dir.    |   |                             
+//  |  +----------------------+   |                    
 //  |                             |                    
 //  |              host_interrupt +---------> 
 //  +-----------------------------+
@@ -48,7 +51,7 @@
 
 `default_nettype none
 
-module chroma_ws2812
+module chroma_encoder
 (
    input wire           clk,
    input wire           rst_n,         // Global reset active low
@@ -65,13 +68,10 @@ module chroma_ws2812
 
    // Local FSM states
    localparam [2:0]  STATE_IDLE                 = 3'h0;
-   localparam [2:0]  STATE_SEND_T0_HIGH         = 3'h1;
-   localparam [2:0]  STATE_CHECK_BIT_VALUE      = 3'h2;
-   localparam [2:0]  STATE_SEND_T1_HIGH         = 3'h3;
-   localparam [2:0]  STATE_SEND_T0_LOW          = 3'h4;
-   localparam [2:0]  STATE_SEND_T1_LOW          = 3'h5;
-   localparam [2:0]  STATE_CHECK_SHIFT_COUNT    = 3'h6;
-   localparam [2:0]  STATE_GOTO_IDLE            = 3'h7;
+   localparam [2:0]  STATE_DEBOUNCE_RISING      = 3'h1;
+   localparam [2:0]  STATE_DEBOUNCE_RISING2     = 3'h2;
+   localparam [2:0]  STATE_DECREMENT            = 3'h3;
+   localparam [2:0]  STATE_INCREMENT            = 3'h4;
 
    // Control Register State
    localparam [1:0]  SHIFT_IN_SEL       = 2'h0;  // Shift input data on ui_in[2]
@@ -79,15 +79,16 @@ module chroma_ws2812
    localparam [1:0]  COND_OUT_SEL       = 2'h0;  // Route cond_out to uo_out[2]
    localparam [0:0]  LOAD4              = 1'b0;  // Not using out[4] to load from count2_preload FIFO 
    localparam [0:0]  LATCH_IN_OUT       = 1'b0;  // Readback latched in data {shift_data,cond_out[0]}
-   localparam [0:0]  SHIFT_EN           = 1'b1;  // Enable shift operation
+   localparam [0:0]  SHIFT_EN           = 1'b0;  // Enable shift operation
    localparam [0:0]  SHIFT_DIR          = 1'b0;  // MSB first
-   localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
+   localparam [0:0]  SHIFT_24_EN        = 1'b0;  // Enable 24-bit shift
    localparam [0:0]  FIFO_24            = 1'b0;  // Using 24-bit reg as FIFO
-   localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
+   localparam [0:0]  COUNT2_DEC         = 1'b1;  // Enable count2 decrement
    localparam [0:0]  LATCH3             = 1'b1;  // Use prism_out[5] as input latch enable
 
-   localparam integer   PIN_DATA    = 0;
-   localparam integer   PIN_LATCH3  = 3;
+   localparam integer   PIN_DATA        = 0;
+   localparam integer   PIN_LATCH3      = 3;
+   localparam integer   PIN_COUNT2_DEC  = 5;
 
    reg   [2:0]    curr_state, next_state;
 
@@ -114,7 +115,7 @@ module chroma_ws2812
    reg            shift_en;
    wire           count2_eq_comm;
 
-   wire           host_in_prev;
+   wire           pin0_in_prev;
 
    // =======================================================
    // Assign in_data bits to individual signals.
@@ -140,7 +141,7 @@ module chroma_ws2812
    assign out_data[10]         = count2_clear;
 
    // Chroma specific pin assignments
-   assign host_in_prev          = in_data[12];
+   assign pin0_in_prev          = in_data[12];
    
    /*
    ==========================================================
@@ -178,9 +179,9 @@ module chroma_ws2812
       ctrl_reg       = {18'h0, LATCH3, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
                         LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
-      // Use cond_out to reflect host-in so we can latch it and 
+      // Use cond_out to reflect pin_in[0] so we can latch it and 
       // detect transitions
-      if (host_in[0])
+      if (pin_in[0])
           cond_out[0]= 1'b1;
 
       // =========================================================
@@ -192,146 +193,68 @@ module chroma_ws2812
 
       STATE_IDLE:
          begin
-            // Detect new data to send
-            if (host_in[0] != host_in_prev)
+            // Detect rising edge of input A
+            if (pin_in[0] != pin0_in_prev)
             begin
-               // Save new state of host_in[0]
-               pin_out[PIN_LATCH3] = 1'b1;
-
-               // Generate an interrupt to the host to tell it we are ready
-               // for more pixels of data
-               count2_clear = 1'b1;
-               count2_inc   = 1'b1;
-
-               // Copy count1_preload into the count1 shift register
+               // Load the debounce count to count1
                count1_load = 1'b1;
 
-               // Go to wait for SCLK
-               next_state = STATE_SEND_T0_HIGH;
+               // Latch pin_in[0] state (through cond_out)
+               pin_out[PIN_LATCH3] = 1'b1;
+
+               // Go wait for debounce count to expire
+               next_state = STATE_DEBOUNCE_RISING;
             end
          end
 
-      STATE_SEND_T0_HIGH:
+      STATE_DEBOUNCE_RISING:
          begin
-            // Drive the data line HIGH for 0.4us
-            pin_out[PIN_DATA] = 1'b1;
+            // Decrement count1 debounce counter
+            count1_dec = 1'b1;
 
-            // Start the count2 counter
-            count2_inc = 1'b1;
-
-            // Test if count2 time expired. comm_data has 0.4us count
-            if (count2_eq_comm)
-            begin
-               next_state = STATE_CHECK_BIT_VALUE;
-            end
+            // Test if count1 count is zero
+            if (count1_zero)
+               next_state = STATE_DECREMENT;
+            else
+               next_state = STATE_DEBOUNCE_RISING2;
          end
 
-      STATE_CHECK_BIT_VALUE:
+      STATE_DEBOUNCE_RISING2:
          begin
-            // Continue Driving the data line HIGH
-            pin_out[PIN_DATA] = 1'b1;
+            // Continue decrementing count1 debounce counter
+            count1_dec = 1'b1;
 
-            // Keep counting
-            count2_inc = 1'b1;
-
-            // Test if the bit is a '0'
-            if (shift_in_data == 1'b0)
+            // Test if input A went low again
+            if (pin_in[0] != pin0_in_prev)
             begin
-               // Clear the count2 counter and go send T0_LOW
-               count2_clear = 1'b1;
-               count2_inc = 1'b0;
+               // Latch pin_in[0] state (through cond_out)
+               pin_out[PIN_LATCH3] = 1'b1;
 
                // Go check the shift_coun
-               next_state = STATE_SEND_T0_LOW;
-            end
-            else
-            begin
-               // No rising SCLK ... go check for end of transaction
-               next_state = STATE_SEND_T1_HIGH;
+               next_state = STATE_IDLE;
             end
          end
       
-      STATE_SEND_T1_HIGH:
+      STATE_DECREMENT:
          begin
-            // Continue Driving the data line HIGH
-            pin_out[PIN_DATA] = 1'b1;
-
-            // Keep counting
-            count2_inc = 1'b1;
-
-            // Test if count2 time expired.  count2_compare has 0.8us count
-            if (count2_equal)
+            // Test if we need to decrement count2
+            if (pin_in[0] == pin_in[1])
             begin
-               // Clear count2 counter
-               count2_clear = 1'b1;
-               count2_inc = 1'b0;
-
-               // Go send T1LOW period
-               next_state = STATE_SEND_T1_LOW;
+               // Decrement count2 
+               pin_out[PIN_COUNT2_DEC] = 1'b1;
+               next_state = STATE_IDLE;
             end
-         end
-
-      STATE_SEND_T0_LOW:
-         begin
-            // Keep counting
-            count2_inc = 1'b1;
-
-            // Test when time expires.  count2_compare has .8us compare value
-            if (count2_equal)
-            begin
-               // Shift next bit
-               shift_en = 1'b1;
-
-               // Clear the counter
-               count2_clear = 1'b1;
-               count2_inc = 1'b0;
-
-               // Go check the shift count
-               next_state = STATE_CHECK_SHIFT_COUNT;
-            end
-         end
-
-      STATE_SEND_T1_LOW:
-         begin
-            // Keep counting
-            count2_inc = 1'b1;
-
-            // Test if 0.4us have passed
-            if (count2_eq_comm)
-            begin
-               // Shift next bit
-               shift_en = 1'b1;
-
-               // Clear the counter
-               count2_clear = 1'b1;
-               count2_inc = 1'b0;
-
-               // Go check the shift count
-               next_state = STATE_CHECK_SHIFT_COUNT;
-            end
-         end
-
-      STATE_CHECK_SHIFT_COUNT:
-         begin
-            // Check if the shift count is zero (byte received)
-            if (!shift_zero)
-               // Not 8 bits yet, go wati for next SCLK
-               next_state = STATE_SEND_T0_HIGH;
             else
-               // Byte received, go generate interrupt to host
-               next_state = STATE_GOTO_IDLE;
+               next_state = STATE_INCREMENT;
          end
 
-      STATE_GOTO_IDLE:
+      STATE_INCREMENT:
          begin
+            // Increment count2
+            count2_inc = 1'b1;
             next_state = STATE_IDLE;
          end
 
-      default:
-         begin
-            // All others, go to IDLE state
-            next_state = STATE_IDLE;
-         end
       endcase
    end
 
