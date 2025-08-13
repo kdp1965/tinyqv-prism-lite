@@ -103,7 +103,7 @@ module chroma_gpio24
    localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
    localparam [0:0]  FIFO_24            = 1'b0;  // Not using 24-bit reg as FIFO
    localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
-   localparam [0:0]  LATCH0             = 1'b0;  // Use prism_out[0] as input latch enable
+   localparam [0:0]  LATCH4             = 1'b0;  // Use prism_out[4] as input latch enable
 
    reg   [2:0]    curr_state, next_state;
 
@@ -197,7 +197,7 @@ module chroma_gpio24
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       gpio_store     = 1'b0;
-      ctrl_reg       = {18'h0, LATCH0, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+      ctrl_reg       = {18'h0, LATCH4, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
                         LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // =========================================================

@@ -84,10 +84,10 @@ module chroma_encoder
    localparam [0:0]  SHIFT_24_EN        = 1'b0;  // Enable 24-bit shift
    localparam [0:0]  FIFO_24            = 1'b0;  // Using 24-bit reg as FIFO
    localparam [0:0]  COUNT2_DEC         = 1'b1;  // Enable count2 decrement
-   localparam [0:0]  LATCH3             = 1'b1;  // Use prism_out[5] as input latch enable
+   localparam [0:0]  LATCH2             = 1'b1;  // Use prism_out[2] as input latch enable
 
    localparam integer   PIN_DATA        = 0;
-   localparam integer   PIN_LATCH3      = 3;
+   localparam integer   PIN_LATCH2      = 2;
    localparam integer   PIN_COUNT2_DEC  = 5;
 
    reg   [2:0]    curr_state, next_state;
@@ -176,7 +176,7 @@ module chroma_encoder
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       cond_out[0]    = 1'b0;
-      ctrl_reg       = {18'h0, LATCH3, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+      ctrl_reg       = {18'h0, LATCH2, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
                         LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // Use cond_out to reflect pin_in[0] so we can latch it and 
@@ -200,7 +200,7 @@ module chroma_encoder
                count1_load = 1'b1;
 
                // Latch pin_in[0] state (through cond_out)
-               pin_out[PIN_LATCH3] = 1'b1;
+               pin_out[PIN_LATCH2] = 1'b1;
 
                // Go wait for debounce count to expire
                next_state = STATE_DEBOUNCE_RISING;
@@ -228,7 +228,7 @@ module chroma_encoder
             if (pin_in[0] != pin0_in_prev)
             begin
                // Latch pin_in[0] state (through cond_out)
-               pin_out[PIN_LATCH3] = 1'b1;
+               pin_out[PIN_LATCH2] = 1'b1;
 
                // Go check the shift_coun
                next_state = STATE_IDLE;

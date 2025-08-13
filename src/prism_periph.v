@@ -73,7 +73,7 @@ module tqvp_prism (
 
     localparam  OUTPUTS = 11;
 
-    localparam  OUT_LATCH3          = 4;
+    localparam  OUT_LATCH2          = 2;
     localparam  OUT_LOAD4           = 4;
     localparam  OUT_COUNT2_DEC      = 5;
     localparam  OUT_SHIFT           = 6;
@@ -251,7 +251,7 @@ module tqvp_prism (
 
     // Assign shift mode
     assign shift_mode = {shift_24_en, shift_en};
-    assign latch_in   = latch3 && prism_out_data[OUT_LATCH3];
+    assign latch_in   = latch3 && prism_out_data[OUT_LATCH2];
     assign shift_24   = shift_mode == 2'b11 && prism_out_data[OUT_SHIFT];
     assign shift_8    = shift_mode == 2'b01 && prism_out_data[OUT_SHIFT];
 

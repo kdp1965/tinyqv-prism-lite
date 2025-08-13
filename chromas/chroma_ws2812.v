@@ -84,10 +84,10 @@ module chroma_ws2812
    localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
    localparam [0:0]  FIFO_24            = 1'b0;  // Using 24-bit reg as FIFO
    localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
-   localparam [0:0]  LATCH3             = 1'b1;  // Use prism_out[5] as input latch enable
+   localparam [0:0]  LATCH2             = 1'b1;  // Use prism_out[5] as input latch enable
 
    localparam integer   PIN_DATA    = 0;
-   localparam integer   PIN_LATCH3  = 3;
+   localparam integer   PIN_LATCH2  = 2;
 
    reg   [2:0]    curr_state, next_state;
 
@@ -175,7 +175,7 @@ module chroma_ws2812
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       cond_out[0]    = 1'b0;
-      ctrl_reg       = {18'h0, LATCH3, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+      ctrl_reg       = {18'h0, LATCH2, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
                         LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // Use cond_out to reflect host-in so we can latch it and 
@@ -196,7 +196,7 @@ module chroma_ws2812
             if (host_in[0] != host_in_prev)
             begin
                // Save new state of host_in[0]
-               pin_out[PIN_LATCH3] = 1'b1;
+               pin_out[PIN_LATCH2] = 1'b1;
 
                // Generate an interrupt to the host to tell it we are ready
                // for more pixels of data
