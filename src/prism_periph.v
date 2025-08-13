@@ -73,7 +73,7 @@ module tqvp_prism (
 
     localparam  OUTPUTS = 11;
 
-    localparam  OUT_LATCH3          = 3;
+    localparam  OUT_LATCH3          = 4;
     localparam  OUT_LOAD4           = 4;
     localparam  OUT_COUNT2_DEC      = 5;
     localparam  OUT_SHIFT           = 6;
