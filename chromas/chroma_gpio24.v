@@ -23,7 +23,7 @@
 //   ============    ===========   ======================
 //   prism_out[0]    (uo_out[1])   GPIO load_bar 75165
 //   cond_out[0]     (uo_out[2])   GPIO store for 74595
-//   shift_data      (uo_out[4])   Shift data out
+//   shift_data      (uo_out[5])   Shift data out
 //   prism_out[6]    (uo_out[7])   Shift clock (shift_en)
 //
 //   prism_in[0]  (ui_in[0]):   Shift data in
@@ -40,11 +40,11 @@
 //     |         |       +------------+    +------------+    +------------+    
 //     |         |       |   74165    |    |   74165    |    |   74165    |    
 //     |         |       |            |    |            |    |            |    
-//     |   out[1]+------>|ld/shift    | -->|ld/shift    | -->|ld/shift    |    
-//     |   out[7]+--*--->|clk         | -->|clk         | -->|clk         |    
+//     |uo_out[1]+------>|ld/shift    | -->|ld/shift    | -->|ld/shift    |    
+//     |uo_out[7]+--*--->|clk         | -->|clk         | -->|clk         |    
 //     |         |  | 0->|in  ser  out+--->|in  ser  out+--->|in  ser  out+--+ 
 //     |         |  |    +------------+    +------------+    +------------+  | 
-//     |    in[0]|<-|--------------------------------------------------------+ 
+//     | uo_in[0]|<-|--------------------------------------------------------+ 
 //     |         |  |                                                          
 //     |         |  |       Parallel          Parallel          Parallel        
 //     |         |  |       outputs           outputs           outputs         
@@ -54,8 +54,8 @@
 //     |         |  |    |   74595    |    |   74595    |    |   74595    |    
 //     |         |  |    |            |    |            |    |            |    
 //     |         |  +--->|clk         | -->|clk         | -->|clk         |    
-//     |   out[2]+------>|ld/shift    | -->|ld/shift    | -->|ld/shift    |    
-//     |   out[3]+------>|in  ser  out+--->|in  ser  out+--->|in  ser  out|
+//     |uo_out[2]+------>|ld/shift    | -->|ld/shift    | -->|ld/shift    |    
+//     |uo_out[5]+------>|in  ser  out+--->|in  ser  out+--->|in  ser  out|
 //     |         |       +------------+    +------------+    +------------+
 //     |         | 
 //     +---------+  
@@ -94,7 +94,7 @@ module chroma_gpio24
 
    // Control Register State
    localparam [1:0]  SHIFT_IN_SEL       = 2'h0;  // Shift input data on ui_in[0]
-   localparam [1:0]  SHIFT_OUT_SEL      = 2'h1;  // Route shift_data to uo_out[4] 
+   localparam [1:0]  SHIFT_OUT_SEL      = 2'h1;  // Route shift_data to uo_out[5] 
    localparam [1:0]  COND_OUT_SEL       = 2'h1;  // Route cond_out to uo_out[2]
    localparam [0:0]  LOAD4              = 1'b1;  // Not using out[4] to load from count2_preload FIFO 
    localparam [0:0]  LATCH_IN_OUT       = 1'b1;  // Readback latched out data [6,1]
@@ -103,7 +103,7 @@ module chroma_gpio24
    localparam [0:0]  SHIFT_24_EN        = 1'b1;  // Enable 24-bit shift
    localparam [0:0]  FIFO_24            = 1'b0;  // Not using 24-bit reg as FIFO
    localparam [0:0]  COUNT2_DEC         = 1'b0;  // No count2 decrement
-   localparam [0:0]  LATCH4             = 1'b0;  // Use prism_out[4] as input latch enable
+   localparam [0:0]  LATCH2             = 1'b0;  // Use prism_out[2] as input latch enable
 
    reg   [2:0]    curr_state, next_state;
 
@@ -197,7 +197,7 @@ module chroma_gpio24
       count2_clear   = 1'b0;
       shift_en       = 1'b0;
       gpio_store     = 1'b0;
-      ctrl_reg       = {18'h0, LATCH4, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
+      ctrl_reg       = {18'h0, LATCH2, COUNT2_DEC, FIFO_24, SHIFT_24_EN, SHIFT_DIR, SHIFT_EN,
                         LATCH_IN_OUT, LOAD4, COND_OUT_SEL, SHIFT_OUT_SEL, SHIFT_IN_SEL};
 
       // =========================================================

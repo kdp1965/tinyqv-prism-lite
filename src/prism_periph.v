@@ -58,13 +58,18 @@ module tqvp_prism (
     output     [7:0]  uo_out,       // The output PMOD.  Each wire is only connected if this peripheral is selected.
                                     // Note that uo_out[0] is normally used for UART TX.
 
+    (* keep = "true" *)
     input     [5:0]   address,      // Address within this peripheral's address space
+    (* keep = "true" *)
     input     [31:0]  data_in,      // Data in to the peripheral, bottom 8, 16 or all 32 bits are valid on write.
 
     // Data read and write requests from the TinyQV core.
+    (* keep = "true" *)
     input     [1:0]   data_write_n, // 11 = no write, 00 = 8-bits, 01 = 16-bits, 10 = 32-bits
+    (* keep = "true" *)
     input     [1:0]   data_read_n,  // 11 = no read,  00 = 8-bits, 01 = 16-bits, 10 = 32-bits
     
+    (* keep = "true" *)
     output reg [31:0] data_out,     // Data out from the peripheral, bottom 8, 16 or all 32 bits are valid on read when data_ready is high.
     output            data_ready,
 
@@ -92,27 +97,37 @@ module tqvp_prism (
     wire [15:0]         prism_in_data;
     wire [OUTPUTS-1:0]  prism_out_data;
     wire [31:0]         prism_read_data;
+    (* keep = "true" *)
     reg   [1:0]         host_in;
     wire                ctrl_reg_en;
     wire                count1_reg_en;
     wire                count2_reg_en;
     wire                count1_toggle_en;
+    (* keep = "true" *)
     reg  [23:0]         count1;
+    (* keep = "true" *)
     wire [23:0]         count1_preload;
+    (* keep = "true" *)
     reg   [7:0]         count2;
+    (* keep = "true" *)
     wire  [7:0]         count2_compare;
     wire                count2_dec;
     wire  [6:0]         uo_out_c;
+    (* keep = "true" *)
     reg   [6:0]         latched_out;
+    (* keep = "true" *)
     reg   [1:0]         latched_in;
+    (* keep = "true" *)
     wire  [1:0]         cond_out_sel;
     wire  [3:1]         cond_out_en;
+    (* keep = "true" *)
     reg   [7:0]         comm_data;
     wire  [1:0]         shift_in_sel;
     wire                shift_in;
     wire  [3:0]         shift_data_bits;
     wire  [1:0]         shift_out_sel;
     wire  [3:1]         shift_out;
+    (* keep = "true" *)
     reg   [2:0]         shift_count;
     wire                shift_dir;
     wire                shift_24_en;
@@ -126,18 +141,24 @@ module tqvp_prism (
     wire                latch3;
     wire                load4;
     wire                out0_fifo_full;
+    (* keep = "true" *)
     reg   [1:0]         fifo_wr_ptr;
+    (* keep = "true" *)
     reg   [1:0]         fifo_rd_ptr;
+    (* keep = "true" *)
     reg   [1:0]         fifo_count;
     wire                fifo_write;
     wire                fifo_push;
     wire                fifo_read;
+    (* keep = "true" *)
     reg   [7:0]         fifo_rd_data;
     wire                fifo_full;
     wire                fifo_empty;
     wire                latch_in_out;
 `ifndef SYNTH_FPGA
+    (* keep = "true" *)
     reg   [31:0]        latch_data;
+    (* keep = "true" *)
     reg                 latch_wr;
     reg                 latch_wr_p0;
 `else

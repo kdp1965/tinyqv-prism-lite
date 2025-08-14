@@ -85,7 +85,7 @@ directly selectable by the running chroma for state transition or conditional ou
 
 In addition to direct input to the PRISM, a few inputs also have special functions
 (refer to the diagram below for visual).  Input ui_in[0] can be programmatically latched
-by the chroma using PRISM out[5] when configured via the ctrl_reg latch5 and latch_in_out bits.
+by the chroma using PRISM out[2] when configured via the ctrl_reg latch2 and latch_in_out bits.
 The latched input version becomes available on PRISM input in[12].  This allows for detection
 of rising or falling edges.
 
@@ -141,7 +141,7 @@ Outputs uo_out[7:5] can be driven either directly from PRISM out[6:4], or can ha
  - shift_out_sel (2-bits) when non-zero selects 8 or 24 bit shift out data.
 
 Output uo_out[0] can be driven either directly from PRISM out[0] or can be the "fifo_full" signal
-when fifo_24 and latch5 config bits are set in ctrl_reg (more on those bits in the 3-Byte FIFO section).
+when fifo_24 and latch2 config bits are set in ctrl_reg (more on those bits in the 3-Byte FIFO section).
 
 ## Peripherals
 
